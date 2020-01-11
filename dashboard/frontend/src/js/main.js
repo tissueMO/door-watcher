@@ -5,6 +5,18 @@ const $ = require('../../node_modules/jquery/dist/jquery.min.js');
 
 $(() => {
   /**
+   * ローディングスピナーを表示
+   * @param {boolean} 表示するかどうか
+   */
+  const viewLoadingSpinner = isShow => {
+    if (isShow) {
+      $('.js-loading').addClass('show');
+    } else {
+      $('.js-loading').removeClass('show');
+    }
+  };
+
+  /**
    * 現況取得の表示モードを切替
    */
   const toggleValidMode = valid => {
@@ -16,6 +28,8 @@ $(() => {
    * 現況取得
    */
   const fetchCurrentStatus = () => {
+    viewLoadingSpinner(true);
+
     fetch('/functions/fetch/status', {
       method: 'GET'
     }).then(response => {
@@ -30,6 +44,8 @@ $(() => {
     }).catch(e => {
       toggleValidMode(false);
       console.error(e.message);
+    }).finally(() => {
+      viewLoadingSpinner(false);
     });
 
     // 定期的に現況を取得
@@ -76,6 +92,8 @@ $(() => {
    * ログ取得
    */
   $('.js-fetch-logs').on('click', () => {
+    viewLoadingSpinner(true);
+
     fetch('/functions/fetch/log', {
       method: 'GET'
     }).then(response => {
@@ -88,6 +106,8 @@ $(() => {
       // TODO: 画面表示
     }).catch(e => {
       console.error(e.message);
+    }).finally(() => {
+      viewLoadingSpinner(false);
     });
   });
 
@@ -95,6 +115,8 @@ $(() => {
    * 緊急停止/再開
    */
   $('.js-action-emergency').on('click', () => {
+    viewLoadingSpinner(true);
+
     fetch('/functions/action/emergency', {
       method: 'POST'
     }).then(response => {
@@ -109,6 +131,8 @@ $(() => {
     }).catch(e => {
       console.error(e.message);
       alert('モードの移行に失敗しました。詳細はエラーログをご覧下さい。');
+    }).finally(() => {
+      viewLoadingSpinner(false);
     });
   });
 });
