@@ -21,34 +21,33 @@ RUN apt-get update && apt-get install -y \
     build-essential \
     zlib1g-dev \
     libssl-dev \
+    libffi-dev \
  && apt-get clean \
  && apt-get autoremove \
  && rm -rf /var/lib/apt/lists/*
 
-# Installing Python3.8
-RUN wget -O /tmp/python3.8.tar.gz https://www.python.org/ftp/python/3.8.0/Python-3.8.0.tgz && \
-    tar -C /tmp -xvf /tmp/python3.8.tar.gz && \
-    rm -f /tmp/python3.8.tar.gz
-WORKDIR /tmp/Python-3.8.0
-RUN ./configure CFLAGS=-fPIC --enable-shared --enable-optimizations --prefix=/usr/local/python3.8 && \
+# Installing Python3.7
+RUN wget -O /tmp/python3.7.tar.gz https://www.python.org/ftp/python/3.7.2/Python-3.7.2.tgz && \
+    tar -C /tmp -xvf /tmp/python3.7.tar.gz && \
+    rm -f /tmp/python3.7.tar.gz
+WORKDIR /tmp/Python-3.7.2
+RUN ./configure CFLAGS=-fPIC --enable-optimizations --prefix=/usr/local/python3.7 && \
     make && make install
 WORKDIR /tmp
-RUN rm -rf /tmp/Python-3.8.0 && \
-    ln -s /usr/local/python3.8/lib/libpython3.8.so.1.0 /usr/lib/libpython3.8.so.1.0 && \
-    ln -s /usr/local/python3.8/bin/python3.8 /usr/bin/python3 && \
-    ln -s /usr/local/python3.8/bin/pip3.8 /usr/bin/pip3 && \
+RUN rm -rf /tmp/Python-3.7.2 && \
+    ln -s /usr/local/python3.7/lib/libpython3.7.so.1.0 /usr/lib/libpython3.7.so.1.0 && \
+    ln -s /usr/local/python3.7/bin/python3.7 /usr/bin/python3 && \
+    ln -s /usr/local/python3.7/bin/pip3.7 /usr/bin/pip3 && \
     pip3 install --upgrade pip
 
 # mod_wsgi compilation
-RUN wget -O /tmp/mod_wsgi.tar.gz https://github.com/GrahamDumpleton/mod_wsgi/archive/4.6.5.tar.gz && \
+RUN wget -O /tmp/mod_wsgi.tar.gz https://github.com/GrahamDumpleton/mod_wsgi/archive/4.5.6.tar.gz && \
     tar -C /tmp -xvf /tmp/mod_wsgi.tar.gz && \
     rm /tmp/mod_wsgi.tar.gz
-WORKDIR /tmp/mod_wsgi-4.6.5
+WORKDIR /tmp/mod_wsgi-4.5.6
 
-##### 2020.01.12: ここまでできた #####
-
-RUN ./configure CFLAGS=-fPIC --enable-shared --with-python=/usr/bin/python3 --with-apxs=/usr/bin/apxs && \
-    make && make install clean
+RUN ./configure CFLAGS=-fPIC --with-python=/usr/bin/python3 --with-apxs=/usr/bin/apxs && \
+    make && make install
 
 # Copy over and install the requirements
 COPY ./app/requirements.txt /var/www/apache-flask/app/requirements.txt
