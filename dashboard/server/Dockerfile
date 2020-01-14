@@ -45,7 +45,6 @@ RUN wget -O /tmp/mod_wsgi.tar.gz https://github.com/GrahamDumpleton/mod_wsgi/arc
     tar -C /tmp -xvf /tmp/mod_wsgi.tar.gz && \
     rm /tmp/mod_wsgi.tar.gz
 WORKDIR /tmp/mod_wsgi-4.5.6
-
 RUN ./configure CFLAGS=-fPIC --with-python=/usr/bin/python3 --with-apxs=/usr/bin/apxs && \
     make && make install
 
