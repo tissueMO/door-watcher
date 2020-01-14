@@ -1,6 +1,6 @@
 #! /usr/bin/python
 
-from app import app as application
 import sys
+sys.path.insert(0, "/var/www/apache-flask")
 
-sys.path.append("/var/www/apache-flask")
+from app.main import app as application
