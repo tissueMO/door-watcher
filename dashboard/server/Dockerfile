@@ -6,9 +6,6 @@
 # Set the base image
 FROM debian:latest
 
-# File Author / Maintainer
-MAINTAINER Carlos Tighe
-
 # Packages
 RUN apt-get update && apt-get install -y \
     apache2 \
@@ -49,8 +46,9 @@ RUN ./configure CFLAGS=-fPIC --with-python=/usr/bin/python3 --with-apxs=/usr/bin
     make && make install
 
 # Copy over and install the requirements
-COPY ./app/requirements.txt /var/www/apache-flask/app/requirements.txt
-RUN pip3 install -r /var/www/apache-flask/app/requirements.txt
+COPY ./requirements.txt /var/www/apache-flask/requirements.txt
+RUN pip3 install -r /var/www/apache-flask/requirements.txt
+RUN pip3 freeze
 
 # Copy over the apache configuration file and enable the site
 COPY ./apache-flask.conf /etc/apache2/sites-available/apache-flask.conf
@@ -59,7 +57,6 @@ RUN a2enmod headers
 
 # Copy over the wsgi file
 COPY ./apache-flask.wsgi /var/www/apache-flask/apache-flask.wsgi
-COPY ./run.py /var/www/apache-flask/run.py
 COPY ./app /var/www/apache-flask/app/
 
 RUN a2dissite 000-default.conf
