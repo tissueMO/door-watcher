@@ -6,10 +6,14 @@ extern "C" {
 
 // Wi-Fi 接続、通信設定
 #include "settings.h"
-// const char* SSID = "SSID";
-// const char* PASSWORD = "PASSWORD";
-// const char* HOSTNAME = "xxx.xxx.xxx.xxx";
-// const int PORT = xxx;
+// #define SSID {SSID}
+// #define PASSWORD {PASSWORD}
+// #define HOSTNAME {HOSTNAME}
+// #define PORT {PORT}
+const char* ssid = SSID;
+const char* password = PASSWORD;
+const char* host = HOSTNAME;
+const int port = PORT;
 WiFiClient client;
 
 // LED I/O ピン番号
@@ -26,8 +30,8 @@ void setup() {
   // Wi-Fi 接続
   Serial.println();
   Serial.print("Connecting to ");
-  Serial.println(SSID);
-  WiFi.begin(SSID, PASSWORD);
+  Serial.println(ssid);
+  WiFi.begin(ssid, password);
   while (WiFi.status() != WL_CONNECTED) {
     // 接続待ち
     delay(500);
@@ -57,13 +61,13 @@ void loop() {
 
   // サーバーに現在の状態を送信
   Serial.print("Connecting to ");
-  Serial.println(HOSTNAME);
-  if (!client.connect(HOSTNAME, PORT)) {
+  Serial.println(host);
+  if (!client.connect(host, port)) {
     // HTTP通信の確立に失敗
     Serial.println("Connection failed.");
     return;
   }
-  
+
   // リクエスト生成
   String url;
   if(door_state == 0) {
@@ -74,11 +78,11 @@ void loop() {
   url += system_adc_read();  // バッテリーの電圧1/10
   Serial.print("Requesting URL: ");
   Serial.println(url);
-  
+
   // GETリクエスト実行
   client.print(
     String("GET ") + url + " HTTP/1.1\r\n" +
-    "Host: " + HOSTNAME + "\r\n" + 
+    "Host: " + host + "\r\n" + 
     "Connection: close\r\n\r\n"
   );
   delay(10);
