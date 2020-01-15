@@ -6,4 +6,4 @@ Base = declarative_base()
 
 # このパッケージで定義されているモデルをすべてロード
 # Alembicにて自動的にマイグレーションを行う
-from migrate.model import (toilet, toilet_status)
+from migrate.model import (toilet, toilet_status, app_state)
