@@ -1,138 +1,118 @@
 import '../../node_modules/popper.js/dist/umd/popper.min.js';
 import '../../node_modules/bootstrap/dist/js/bootstrap.min.js';
 import '../../node_modules/@coreui/coreui/dist/js/coreui.min.js';
+import * as palette from 'google-palette';
 const $ = require('../../node_modules/jquery/dist/jquery.min.js');
+const Chart = require('../../node_modules/chart.js/dist/Chart.bundle.js');
+const API = require('./call-api.js');
+const Common = require('./common.js');
 
 $(() => {
-  /**
-   * ローディングスピナーを表示
-   * @param {boolean} 表示するかどうか
-   */
-  const viewLoadingSpinner = isShow => {
-    if (isShow) {
-      $('.js-loading').addClass('show');
-    } else {
-      $('.js-loading').removeClass('show');
-    }
-  };
+  if (0 < $('.js-dashboard')) {
+    // ダッシュボード用: 自動で現況取得
+    fetchCurrentStatus();
+  }
 
-  /**
-   * 現況取得の表示モードを切替
-   */
-  const toggleValidMode = valid => {
-    $('.js-dashboard-valid').hide();
-    $('.js-dashboard-invalid').show();
-  };
+  if (0 < $('.js-log')) {
+    // ログページ用: 自動でログ取得
+    fetchLogs();
 
-  /**
-   * 現況取得
-   */
-  const fetchCurrentStatus = () => {
-    viewLoadingSpinner(true);
-
-    fetch('/functions/fetch/status', {
-      method: 'GET'
-    }).then(response => {
-      if (response.ok) {
-        return response.json();
-      } else {
-        throw new Error(`${response.status}: サーバー側からエラーが返されました。`);
-      }
-    }).then(json => {
-      toggleValidMode(true);
-      applyCurrentStatus(json);
-    }).catch(e => {
-      toggleValidMode(false);
-      console.error(e.message);
-    }).finally(() => {
-      viewLoadingSpinner(false);
+    // 再取得ボタン
+    $('.js-fetch-logs').on('click', () => {
+      fetchLogs();
     });
+  }
 
-    // 定期的に現況を取得
-    setTimeout(fetchCurrentStatus, 5000);
-  };
-  fetchCurrentStatus();
-
-  /**
-   * 現況を画面に反映
-   *
-   * @param {string} json 現況取得結果
-   */
-  const applyCurrentStatus = json => {
-    for (const item of json.status) {
-      const $newItem = $('.js-dashboard-item-template')
-        .clone()
-        .removeClass('js-dashboard-item-template d-none');
-
-      if (item.invalid !== true) {
-        $newItem.find('.js-status-invalid').remove();
-        $newItem.find('.js-status-name').text(item.name);
-        $newItem.find('.js-status-rate').text(item.rate100);
-        $newItem.find('.js-status-progressbar')
-          .attr('aria-valuenow', item.current)
-          .attr('aria-valuemax', item.max)
-          .css('width', `${item.rate100}%`)
-          .addClass(
-            (100 <= item.rate100) ? 'bg-danger'
-              : (50 <= item.rate100) ? 'bg-warning'
-                : 'bg-success'
-          );
-        $newItem.find('js-status-available').text(item.max - item.current);
-      } else {
-        $newItem.find('.js-status-valid').remove();
-        $newItem.find('.js-status-name').text(item.name);
-      }
-
-      // 要素追加
-      $('.js-dashboard-valid').append($newItem);
-    }
-  };
-
-  /**
-   * ログ取得
-   */
-  $('.js-fetch-logs').on('click', () => {
-    viewLoadingSpinner(true);
-
-    fetch('/functions/fetch/log', {
-      method: 'GET'
-    }).then(response => {
-      if (response.ok) {
-        return response.json();
-      } else {
-        throw new Error(`${response.status}: サーバー側からエラーが返されました。`);
-      }
-    }).then(json => {
-      // TODO: 画面表示
-    }).catch(e => {
-      console.error(e.message);
-    }).finally(() => {
-      viewLoadingSpinner(false);
-    });
-  });
-
-  /**
-   * 緊急停止/再開
-   */
+  // サイドメニュー用: 緊急停止 or 再開
   $('.js-action-emergency').on('click', () => {
-    viewLoadingSpinner(true);
-
-    fetch('/functions/action/emergency', {
-      method: 'POST'
-    }).then(response => {
-      if (response.ok) {
-        return response.json();
-      } else {
-        throw new Error(`${response.status}: サーバー側からエラーが返されました。`);
-      }
-    }).then(json => {
-      toggleValidMode(json.valid === true);
-      alert(`モード [${json.action}] への移行に成功しました。`);
-    }).catch(e => {
-      console.error(e.message);
-      alert('モードの移行に失敗しました。詳細はエラーログをご覧下さい。');
-    }).finally(() => {
-      viewLoadingSpinner(false);
+    API.apiRules.emergency({
+      success: json => {
+        Common.toggleValidMode(json.valid === true);
+        alert(`モード [${json.action}] への移行に成功しました。`);
+      },
+      fail: e => alert('モードの移行に失敗しました。詳細はエラーログをご覧下さい。')
     });
   });
 });
+
+/**
+ * ダッシュボード: 現況を画面に反映
+ */
+const fetchCurrentStatus = () => {
+  API.apiRules.fetchCurrentStatus({
+    success: json => {
+      Common.toggleValidMode(true);
+
+      for (const item of json.status) {
+        const $newItem = $('.js-dashboard-item-template')
+          .clone()
+          .removeClass('js-dashboard-item-template d-none');
+
+        if (item.invalid !== true) {
+          $newItem.find('.js-status-invalid').remove();
+          $newItem.find('.js-status-name').text(item.name);
+          $newItem.find('.js-status-rate').text(item.rate100);
+          $newItem.find('.js-status-progressbar')
+            .attr('aria-valuenow', item.current)
+            .attr('aria-valuemax', item.max)
+            .css('width', `${item.rate100}%`)
+            .addClass(
+              (100 <= item.rate100) ? 'bg-danger'
+                : (50 <= item.rate100) ? 'bg-warning'
+                  : 'bg-success'
+            );
+          $newItem.find('js-status-available').text(item.max - item.current);
+        } else {
+          $newItem.find('.js-status-valid').remove();
+          $newItem.find('.js-status-name').text(item.name);
+        }
+
+        // 要素追加
+        $('.js-dashboard-valid').append($newItem);
+      }
+    },
+    fail: e => {
+      Common.toggleValidMode(false);
+    },
+    final: () => {
+      // 定期的に現況を取得
+      setTimeout(fetchCurrentStatus, 5000);
+    }
+  });
+};
+
+/**
+ * ログ: ログを画面に反映
+ */
+const fetchLogs = () => {
+  API.apiRules.fetchLogs({
+    success: json => {
+      const ctx = $('.js-logboard-canvas');
+      // 色を生成
+      const colors = palette('mpn65', json.datasets.length).map(hex => `#${hex}`);
+      const datasets = json.datasets.map((value, i) => {
+        return {
+          label: value.label,
+          data: value.data,
+          backgroundColor: 'rgba(0, 0, 0, 0)',
+          borderColor: colors[i],
+          pointRadius: 3,
+          pointHitRadius: 6
+        };
+      });
+      new Chart(ctx, {
+        type: 'line',
+        data: {
+          labels: json.labels,
+          datasets: datasets
+        },
+        options: {
+          title: {
+            display: true,
+            text: 'トイレ入退室ログ'
+          }
+        }
+      });
+    }
+  });
+};
