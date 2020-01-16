@@ -23,7 +23,10 @@ module.exports = {
     "no-unexpected-multiline": "error",
     "no-unreachable": "error",
 
-    // 不等号は常に小なりを基本として向きを揃えるため yoda 記法を暗黙的かつ条件付き認める
-    "yoda": "off"
+    // 不等号は常に小なりを基本として向きを揃えるため yoda 記法を暗黙的かつ条件付きで認める
+    "yoda": "off",
+
+    // Chart.js でグラフを描画する際に怒られるのを防ぐ
+    "no-new": "off",
   }
 }
