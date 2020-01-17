@@ -19,7 +19,7 @@ fileConfig(config.config_file_name)
 # import migrate.base
 import sys
 sys.path.insert(0, ".")
-from migrate.model import Base
+from model import Base
 target_metadata = Base.metadata
 # target_metadata = None
 

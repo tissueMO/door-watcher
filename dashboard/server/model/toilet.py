@@ -1,8 +1,7 @@
 ###############################################################################
 #    トイレの在室ログを表すテーブルの定義
 ###############################################################################
-from . import Base
-from .toilet_status import ToiletStatus
+from model import Base
 from sqlalchemy import ForeignKey
 from sqlalchemy.orm import relationship
 from sqlalchemy.sql.schema import Column
@@ -13,10 +12,12 @@ from sqlalchemy.sql.sqltypes import Integer, Text, Boolean
 """
 class Toilet(Base):
     __tablename__ = "toilet"
+    __table_args__ = {"extend_existing": True}
 
     # 固有のID
     id = Column(Integer, primary_key=True, autoincrement=True)
     ## NOTE: SQLite3では基本的に外部キーが非対応であることが多いため廃止
+    from toilet_status import ToiletStatus
     # toilet_statuses = relationship("ToiletStatus")
 
     # トイレの名前
