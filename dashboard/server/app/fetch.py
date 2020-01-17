@@ -1,5 +1,7 @@
-# coding=utf-8
-from flask import Blueprint, request, jsonify
+###############################################################################
+#    取得系の処理を実行するAPIを定義します。
+###############################################################################
+from flask import Blueprint, request, jsonify, Response
 fetch = Blueprint("fetch", __name__, url_prefix="/fetch")
 
 @fetch.route("/status", methods=["GET"])

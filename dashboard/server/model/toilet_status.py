@@ -1,7 +1,7 @@
 ###############################################################################
 #    トイレの在室ログを表すテーブルの定義
 ###############################################################################
-from . import Base
+from model import Base
 from sqlalchemy import ForeignKey
 from sqlalchemy.orm import relationship
 from sqlalchemy.sql.schema import Column
@@ -12,6 +12,7 @@ from sqlalchemy.sql.sqltypes import Integer, Text, Boolean
 """
 class ToiletStatus(Base):
     __tablename__ = "toilet_status"
+    __table_args__ = {"extend_existing": True}
 
     # 固有のID
     id = Column(Integer, primary_key=True, autoincrement=True)
