@@ -16,6 +16,9 @@ class AppState(Base):
     # 固有のID
     id = Column(Integer, primary_key=True, autoincrement=True)
 
+    # 設定名
+    name = Column(Text, nullable=True)
+
     # 状態コード
     state = Column(Integer, nullable=False)
 
@@ -23,4 +26,4 @@ class AppState(Base):
     comment = Column(Text, nullable=True)
 
     # レコード更新日時
-    modifiedTime = Column(DateTime, nullable=False)
+    modified_time = Column(DateTime, nullable=False)
