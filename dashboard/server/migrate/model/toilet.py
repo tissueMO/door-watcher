@@ -24,3 +24,6 @@ class Toilet(Base):
 
     # 在室しているかどうかに関わらずトイレ自体が利用可能であるかどうか
     valid = Column(Boolean, nullable=False)
+
+    # 個室の部屋数
+    room_count = Column(Integer, nullable=False)
