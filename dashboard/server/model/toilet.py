@@ -5,7 +5,7 @@ from model import Base
 from sqlalchemy import ForeignKey
 from sqlalchemy.orm import relationship
 from sqlalchemy.sql.schema import Column
-from sqlalchemy.sql.sqltypes import Integer, Text, Boolean
+from sqlalchemy.sql.sqltypes import Integer, Text, Boolean, DateTime
 
 
 """トイレマスター
@@ -26,5 +26,8 @@ class Toilet(Base):
     # 在室しているかどうかに関わらずトイレ自体が利用可能であるかどうか
     valid = Column(Boolean, nullable=False)
 
-    # 個室の部屋数
-    room_count = Column(Integer, nullable=False)
+    # 在室しているかどうか
+    is_closed = Column(Boolean, nullable=False)
+
+    # レコード更新日時
+    modified_time = Column(DateTime, nullable=False)

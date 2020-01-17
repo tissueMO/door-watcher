@@ -53,7 +53,7 @@ const fetchCurrentStatus = () => {
           $newItem.find('.js-status-name').text(item.name);
           $newItem.find('.js-status-rate').text(item.rate100);
           $newItem.find('.js-status-progressbar')
-            .attr('aria-valuenow', item.current)
+            .attr('aria-valuenow', item.used)
             .attr('aria-valuemax', item.max)
             .css('width', `${item.rate100}%`)
             .addClass(
@@ -61,7 +61,7 @@ const fetchCurrentStatus = () => {
                 : (50 <= item.rate100) ? 'bg-warning'
                   : 'bg-success'
             );
-          $newItem.find('js-status-available').text(item.max - item.current);
+          $newItem.find('js-status-available').text(item.max - item.used);
         } else {
           $newItem.find('.js-status-valid').remove();
           $newItem.find('.js-status-name').text(item.name);
