@@ -2,7 +2,7 @@
 //    サーバーAPI呼び出し モジュール
 // ###################################################################
 const Common = require('./common.js');
-const apiServerURLBase = 'http://localhost:5000';
+const Settings = require('./settings.js');
 
 /**
  * API呼び出し規約
@@ -51,7 +51,7 @@ export const apiRules = {
 export const callAPI = ({ url, httpMethod = 'GET', success, fail, final } = {}) => {
   Common.viewLoadingSpinner(true);
 
-  fetch(`${apiServerURLBase}${url}`, { method: httpMethod })
+  fetch(`${Settings.apiServerURLBase}${url}`, { method: httpMethod })
     .then(response => {
       if (response.ok) {
         return response.json();
