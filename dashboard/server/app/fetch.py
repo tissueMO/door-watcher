@@ -3,7 +3,7 @@
 ###############################################################################
 import datetime
 from datetime import datetime as dt
-from sqlalchemy import create_engine, func
+from sqlalchemy import create_engine, func, asc, desc
 from sqlalchemy.orm import sessionmaker
 from flask import Blueprint, request, jsonify, Response
 fetch = Blueprint("fetch", __name__, url_prefix="/fetch")
@@ -87,8 +87,8 @@ def log(start_date: str, end_date: str, step_minutes: int):
           ],
           "datasets": [
             {
-              "label": "4F男性用トイレ(空き)",
-              "data": [0, 1, 1, ...]
+              "label": "4F男性用トイレ",
+              "data": [0, 1, 1, ...]    // 0~1 の使用率を表す
             },
             ...
           ]
@@ -106,8 +106,13 @@ def log(start_date: str, end_date: str, step_minutes: int):
     engine = create_engine("sqlite:///db/toilet.db")
     session = sessionmaker(bind=engine)()
 
-    # トイレマスターを取得: 名称でグループ化
+    # トイレマスターを取得
+    # 非グループ化
     toilets = session
+        .query(Toilet)
+        .all()
+    # 名称でグループ化
+    grouped_toilets = session
         .query(
             Toilet,
             func.count().label("max")
@@ -124,23 +129,66 @@ def log(start_date: str, end_date: str, step_minutes: int):
         # 停止モード: 空で返す
         return jsonify({})
 
-    # 指定された期間に該当するトイレ入退室トランザクションデータを一括で取得
-    toilet_statuses = session
+    # 指定された期間に該当するトイレ入退室トランザクションデータを一括で取得できる原型クエリーを作成
+    toilet_statuses_query = session
         .query(ToiletStatus)
         .filter(
             begin_datetime <= ToiletStatus.created_time,
             ToiletStatus.created_time < end_datetime
-        ).all()
+        )
 
     # それぞれの系列において、指定されたサンプリング間隔で見たときの使用率を算出してデータセットを作る
     labels = []
-    datasets = []
+    datasets = [{
+        label: f"{x.name}"
+        for x in grouped_toilets
+    }]
+
+    # ラベルを生成
     current_datetime = begin_datetime
-
     while current_datetime < end_datetime:
-
-        # 次のサンプリング時刻に進める
+        labels.append(dt.strftime(current_datetime, "%Y-%m-%d %H:%M"))
         current_datetime + datetime.timedelta(minutes=step_minutes)
+
+    # 系列ごとにサンプリングしていく
+    for i, series_toilet in enumerate(grouped_toilets):
+        # この系列に属するトイレマスターのレコードを抽出
+        target_toilets_id_list = [
+            x.id for x in toilets if x.name == series_toilet.name
+        ]
+        target_toilets_max = len(target_toilets_max)
+
+        # 先頭のサンプリング時刻から一定のサンプリング間隔で状況を抽出していく
+        data = []
+        current_datetime = begin_datetime
+        while current_datetime < end_datetime:
+            for toilet_status in toilet_status:
+                # 現在のサンプリング時刻の直前にいる対象トイレそれぞれの在室状況を見る
+                target_toilets_closed_count = 0
+
+                for target_toilet_id in target_toilets_id_list:
+                    # NOTE: 万が一取得期間よりも前にしか変更がない場合も考慮して、開始日時は指定しないでおく
+                    status = toilet_status
+                        .filter(
+                            ToiletStatus.created_time <= current_datetime,
+                            ToiletStatus.toilet_id == target_toilet_id
+                        )
+                        .order_by(desc(ToiletStatus.created_time))
+                        .limit(1)
+                        .first()
+                    if status is not None:
+                        target_toilets_closed_count += (1 if status.is_closed else 0)
+
+                # 現在のサンプリング時刻における使用率を算出
+                usage_rate = target_toilets_closed_count / target_toilets_max
+
+                data.append(usage_rate)
+
+            # 次のサンプリング時刻に進める
+            current_datetime + datetime.timedelta(minutes=step_minutes)
+
+        # 出来上がった系列データをデータセットに格納
+        datasets[i]["data"] = data
 
     # API側はデータを返すだけで、見た目やオプションはクライアント側で付加してもらうポリシーとする
     return jsonify({
