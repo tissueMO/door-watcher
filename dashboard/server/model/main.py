@@ -42,20 +42,13 @@ if __name__ == "__main__":
         Toilet(id=41, name="6F女性用トイレ", valid=False, is_closed=False, modified_time=now),
         Toilet(id=42, name="6F女性用トイレ", valid=False, is_closed=False, modified_time=now)
     ])
-    # トイレ入退室トランザクションテーブル
-    session.add_all([
-      ToiletStatus(toilet_id=11, is_closed=False, created_time=now+timedelta(minutes=0)),
-      ToiletStatus(toilet_id=11, is_closed=True, created_time=now+timedelta(minutes=13)),
-      ToiletStatus(toilet_id=11, is_closed=False, created_time=now+timedelta(minutes=26)),
-      ToiletStatus(toilet_id=11, is_closed=False, created_time=now+timedelta(minutes=39)),
-      ToiletStatus(toilet_id=11, is_closed=True, created_time=now+timedelta(minutes=52)),
-      ToiletStatus(toilet_id=11, is_closed=True, created_time=now+timedelta(minutes=65)),
-      ToiletStatus(toilet_id=11, is_closed=True, created_time=now+timedelta(minutes=78)),
-      ToiletStatus(toilet_id=11, is_closed=False, created_time=now+timedelta(minutes=91)),
-      ToiletStatus(toilet_id=11, is_closed=False, created_time=now+timedelta(minutes=104)),
-      ToiletStatus(toilet_id=11, is_closed=True, created_time=now+timedelta(minutes=117)),
-      ToiletStatus(toilet_id=11, is_closed=False, created_time=now+timedelta(minutes=130))
-    ])
+    # [デバッグ用] トイレ入退室トランザクションテーブル
+    import random
+    for toilet_id in [11, 21, 31, 32, 41, 42]:
+        count = random.randint(1, 10)
+        for i in range(count):
+            timedelta_minutes = random.randint(1, 10000)
+            session.add(ToiletStatus(toilet_id=toilet_id, is_closed=False, created_time=now-timedelta(minutes=timedelta_minutes)))
     # 初期状態で挿入しておきたいレコードの定義 ここまで <<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<
 
     # 変更をコミット
