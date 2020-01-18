@@ -34,7 +34,7 @@ const fetchCurrentStatus = (isLoop) => {
       Common.toggleValidMode(true);
 
       // 既存の現況をすべてクリア
-      $('.js-status-item').remove();
+      $('.js-status-item:not(.js-status-item-template)').remove();
 
       if (json.success === false) {
         // 取得できなかったときはエラー内容を表示する
@@ -44,8 +44,7 @@ const fetchCurrentStatus = (isLoop) => {
       for (const item of json.status) {
         const $newItem = $('.js-status-item-template')
           .clone()
-          .removeClass('js-status-item-template d-none')
-          .addClass('js-status-item');
+          .removeClass('js-status-item-template d-none');
 
         if (item.valid === true) {
           $newItem.find('.js-status-invalid').remove();
@@ -135,7 +134,7 @@ const fetchLogs = () => {
   // APIパラメーターをセット
   const beginDate = new Date();
   const endDate = new Date(beginDate.getTime());
-  beginDate.setDate(endDate.getDate() - 7);
+  beginDate.setDate(endDate.getDate() - 5);
   const format = 'yyyymmdd';
   const step = 10;
   API.apiRules.fetchLogs.urlSuffix = `/${dateformat(beginDate, format)}/${dateformat(endDate, format)}/${step}`;
@@ -146,59 +145,30 @@ const fetchLogs = () => {
       $('.js-logboard-valid').show();
       $('.js-logboard-container').addClass('flex-fill');
 
-      const $ctx = $('.js-logboard-canvas');
-      // 色を生成
-      const colors = palette('mpn65', json.datasets.length).map(hex => `#${hex}`);
-      const datasets = json.datasets.map((value, i) => {
-        return {
-          label: value.label,
-          data: value.data,
-          backgroundColor: 'rgba(0, 0, 0, 0)',
-          borderColor: colors[i],
+      // 既存の現況をすべてクリア
+      $('.js-logboard-canvas:not(.js-logboard-canvas-template)').remove();
+
+      // 系列色を生成
+      const colors = palette('mpn65', json.length).map(hex => `#${hex}`);
+
+      // 系列分だけグラフを生成
+      json.forEach((item, index) => {
+        // テンプレート要素からキャンバスをコピー
+        const $newItem = $('.js-logboard-canvas-template')
+          .clone()
+          .removeClass('js-logboard-canvas-template d-none');
+
+        item.data.datasets[0] = Object.assign(item.data.datasets[0], {
+          backgroundColor: `${colors[index]}11`,
+          borderColor: colors[index],
           pointRadius: 3,
           pointHitRadius: 6,
           animation: true
-        };
-      });
-      new Chart($ctx, {
-        type: 'line',
-        data: {
-          labels: json.labels,
-          datasets: datasets
-        },
-        options: {
-          // title: {
-          //   display: true,
-          //   text: 'トイレ入退室ログ'
-          // },
-          scales: {
-            xAxes: [
-              {
-                ticks: {
-                  // 横軸ラベルは5飛びずつ表示
-                  callback: (lavel, index, labels) => ((index % 5) === 0) ? lavel : ''
-                }
-              }
-            ],
-            yAxes: [
-              {
-                ticks: {
-                  beginAtZero: true,
-                  min: 0,
-                  max: 1,
-                  // 縦軸ラベルはパーセンテージ表示
-                  callback: (label, index, labels) => label * 100
-                },
-                scaleLabel: {
-                  display: true,
-                  labelString: '使用率 (%)'
-                }
-              }
-            ]
-          },
-          responsive: true,
-          maintainAspectRatio: false
-        }
+        });
+        new Chart($newItem, item);
+
+        // 画面上に追加
+        $('.js-logboard-canvas-wrapper').append($newItem);
       });
     },
     fail: e => {
