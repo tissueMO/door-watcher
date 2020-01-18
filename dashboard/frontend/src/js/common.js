@@ -5,7 +5,8 @@ const $ = require('../../node_modules/jquery/dist/jquery.min.js');
 
 /**
  * ローディングスピナーを表示
- * @param {boolean} 表示するかどうか
+ *
+ * @param {boolean} isShow 表示するかどうか
  */
 export const viewLoadingSpinner = isShow => {
   if (isShow) {
@@ -17,6 +18,8 @@ export const viewLoadingSpinner = isShow => {
 
 /**
  * 現況取得の表示モードを切替
+ *
+ * @param {boolean} valid 現況取得を表示するかどうか
  */
 export const toggleValidMode = valid => {
   if (valid) {

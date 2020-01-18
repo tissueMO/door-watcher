@@ -3,34 +3,34 @@
 <head>
 <%- include('templates/_head'); %>
 </head>
-<body class="app sidebar-fixed sidebar-md-show max-h-100vh">
+<body class="app sidebar-fixed sidebar-md-show">
 <%- include('templates/_header'); %>
 
-<div class="app-body js-log">
+<div class="app-body js-dashboard">
   <%- include('templates/_sidebar-admin'); %>
-  <main class="main d-flex flex-column">
+  <main class="main">
     <nav aria-label="breadcrumb">
       <ol class="breadcrumb">
-        <li class="breadcrumb-item active">入退室ログ</li>
+        <li class="breadcrumb-item active">ダッシュボード [管理者向け]</li>
       </ol>
     </nav>
-    <div class="container-fluid d-flex flex-column js-logboard-container">
-      <div class="row flex-fill position-relative">
+    <div class="container-fluid">
+      <div class="row position-relative">
         <%- include('templates/_loading'); %>
         <div class="card col-12">
-          <div class="card-body d-flex flex-column flex-fill">
-            <h1 class="ml-n2">入退室ログ</h1>
-            <div class="row js-logboard-invalid" style="display: none;">
+          <div class="card-body">
+            <h1 class="ml-n2">ダッシュボード [管理者向け]</h1>
+            <div class="row js-dashboard-invalid" style="display: none;">
               <div class="col-12">
                 <div class="alert alert-danger my-3" role="alert">
                   <strong>ごめんなさい！</strong> &nbsp;
-                  ただいま入退室ログを取得できない状態となっています。。。
+                  ただいま現況を取得できない状態となっています。。。
                 </div>
               </div>
             </div>
-            <div class="row js-logboard-valid flex-fill" style="display: none;">
-              <div class="col-12">
-                <canvas class="js-logboard-canvas"><!-- グラフ描画領域 --></canvas>
+            <div class="row js-dashboard-valid" style="display: none;">
+              <div class="col-12 col-lg-6 d-none js-status-item-template">
+                <%- include('templates/_status-item'); %>
               </div>
             </div><!-- row -->
           </div><!-- card-body -->
