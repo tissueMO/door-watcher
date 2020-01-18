@@ -12,6 +12,7 @@
     "chart.js": "^2.9.3",
     "copy-webpack-plugin": "^5.1.1",
     "css-loader": "^3.4.2",
+    "dateformat": "^3.0.3",
     "ejs": "^3.0.1",
     "ejs-html-loader": "^4.0.1",
     "eslint": "^6.8.0",

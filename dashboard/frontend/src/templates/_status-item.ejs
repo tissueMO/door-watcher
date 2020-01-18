@@ -1,5 +1,5 @@
 <!-- 監視成功モード -->
-<div class="callout callout-primary b-t-1 b-r-1 b-b-1 p-3 js-status-valid">
+<div class="callout b-t-1 b-r-1 b-b-1 p-3 js-status-valid">
   <div class="progress-group">
     <div class="progress-group-header">
       <i class="material-icons progress-group-icon mr-2">wc</i>
@@ -16,12 +16,12 @@
     </div>
   </div>
   <span class="js-free">
-    <strong class="h4 font-weight-bold">空き <span class="js-status-available">0</span></strong>
+    <strong class="h4 font-weight-bold">空き <span class="js-status-available">0</span> <span class="js-status-available-unit">室</span></strong>
   </span>
 </div><!-- callout -->
 
 <!-- 監視不能モード -->
-<div class="callout callout-danger b-t-1 b-r-1 b-b-1 p-3 bg-dark js-status-invalid">
+<div class="callout b-t-1 b-r-1 b-b-1 p-3 bg-dark js-status-invalid callout-invalid">
   <div class="progress-group">
     <div class="progress-group-header">
       <i class="material-icons progress-group-icon mr-2">wc</i>
@@ -31,4 +31,7 @@
   <span class="js-free-invalid">
     <strong class="h4 font-weight-bold">監視不能</strong>
   </span>
+  <div class="callout-bg-icon-wrapper position-absolute h-100 d-flex align-items-center">
+    <i class="material-icons callout-bg-icon position-absolute">warning</i>
+  </div>
 </div><!-- callout -->

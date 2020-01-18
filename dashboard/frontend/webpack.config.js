@@ -143,4 +143,7 @@ for (const [targetName, srcName] of Object.entries(getEntriesList({ejs: "html"})
   }));
 }
 
+// console.log(app);
+// console.log(app.plugins);
+
 module.exports = [app];
