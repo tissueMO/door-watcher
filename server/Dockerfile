@@ -1,12 +1,6 @@
-############################################################
-# From https://github.com/Craicerjack/apache-flask
-# Target Python Version is 3.6
-# $ docker run -p 81:80 --rm --privileged -d {CONTAINER_NAME}
-############################################################
-# Set the base image
 FROM debian:latest
 
-# Packages
+# 依存パッケージのインストール
 RUN apt-get update && apt-get install -y \
     apache2 \
     apache2-dev \
@@ -33,7 +27,7 @@ RUN apt-get update && apt-get install -y \
  && apt-get autoremove \
  && rm -rf /var/lib/apt/lists/*
 
-# Installing Python3.7
+# Python のソースインストール
 RUN wget -O /tmp/python3.7.tar.gz https://www.python.org/ftp/python/3.7.2/Python-3.7.2.tgz && \
     tar -C /tmp -xvf /tmp/python3.7.tar.gz && \
     rm -f /tmp/python3.7.tar.gz
@@ -47,7 +41,7 @@ RUN rm -rf /tmp/Python-3.7.2 && \
     ln -s /usr/local/python3.7/bin/pip3.7 /usr/bin/pip3 && \
     pip3 install --upgrade pip
 
-# mod_wsgi compilation
+# mod_wsgi のソースインストール
 RUN wget -O /tmp/mod_wsgi.tar.gz https://github.com/GrahamDumpleton/mod_wsgi/archive/4.5.6.tar.gz && \
     tar -C /tmp -xvf /tmp/mod_wsgi.tar.gz && \
     rm /tmp/mod_wsgi.tar.gz
@@ -55,18 +49,18 @@ WORKDIR /tmp/mod_wsgi-4.5.6
 RUN ./configure CFLAGS=-fPIC --with-python=/usr/bin/python3 --with-apxs=/usr/bin/apxs && \
     make && make install
 
-# Copy over and install the requirements
+# サーバーアプリケーションの依存パッケージのインストール
 COPY ./requirements.txt /var/www/apache-flask/requirements.txt
 RUN pip3 install -r /var/www/apache-flask/requirements.txt
 RUN pip3 freeze
 RUN ln -s /usr/local/python3.7/bin/alembic /usr/bin/alembic
 
-# Copy over the apache configuration file and enable the site
+# Apache2の mod_wsgi に関する設定ファイルを適用
 COPY ./apache-flask.conf /etc/apache2/sites-available/apache-flask.conf
 RUN a2ensite apache-flask
 RUN a2enmod headers
 
-# Copy over the wsgi file
+# WSGI Webアプリケーションをホストから丸ごとコピー
 COPY ./apache-flask.wsgi /var/www/apache-flask/apache-flask.wsgi
 COPY ./app /var/www/apache-flask/app/
 COPY ./migrate /var/www/apache-flask/migrate/
@@ -74,23 +68,22 @@ COPY ./model /var/www/apache-flask/model/
 COPY ./alembic.ini /var/www/apache-flask/
 RUN mkdir /var/www/apache-flask/db
 
+# Apache2の mod_wsgi に関する設定ファイルを適用
 RUN a2dissite 000-default.conf
 RUN a2ensite apache-flask.conf
 
+# コンテナー側のポートを開ける
 EXPOSE 80
 
+# WSGI Webアプリケーション のディレクトリーに移動
 WORKDIR /var/www/apache-flask
 
-# Migrate Database & Create DB File
+# DBマイグレーションを実行、デフォルトのレコードを流し込む
 RUN alembic upgrade head && \
     alembic revision --autogenerate && \
     alembic upgrade head && \
     python3 ./model/main.py && \
     chown -R www-data:www-data /var/www/apache-flask/db
 
-# CMD ["/bin/bash"]
+# Apache2 をフォアグラウンドで起動
 CMD  /usr/sbin/apache2ctl -D FOREGROUND
-# The commands below get apache running but there are issues accessing it online
-# The port is only available if you go to another port first
-# ENTRYPOINT ["/sbin/init"]
-# CMD ["/usr/sbin/apache2ctl"]

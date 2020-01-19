@@ -18,6 +18,11 @@ WiFiClient client;
 
 // 機器固有設定
 const char* TOILET_ID = "11";
+// const char* TOILET_ID = "21";
+// const char* TOILET_ID = "31";
+// const char* TOILET_ID = "32";
+// const char* TOILET_ID = "41";
+// const char* TOILET_ID = "42";
 
 // LED I/O ピン番号
 const int LED = 4;
@@ -43,7 +48,7 @@ void setup() {
 
   // 接続成功後
   Serial.println("");
-  Serial.println("Wi-Fi connected.");  
+  Serial.println("Wi-Fi connected.");
   Serial.print("IP address: ");
   Serial.println(WiFi.localIP());
 
@@ -87,7 +92,7 @@ void loop() {
   // POSTリクエスト実行
   client.print(
     String("POST ") + url + " HTTP/1.1\r\n" +
-    "Host: " + host + "\r\n" + 
+    "Host: " + host + "\r\n" +
     "Connection: close\r\n\r\n"
   );
   delay(10);
