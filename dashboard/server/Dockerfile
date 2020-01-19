@@ -19,6 +19,16 @@ RUN apt-get update && apt-get install -y \
     zlib1g-dev \
     libssl-dev \
     libffi-dev \
+    sqlite3 \
+    libsqlite3-dev \
+    libbz2-dev \
+    libncurses5-dev \
+    libgdbm-dev \
+    liblzma-dev \
+    libssl-dev \
+    tcl-dev \
+    tk-dev \
+    libreadline-dev \
  && apt-get clean \
  && apt-get autoremove \
  && rm -rf /var/lib/apt/lists/*
@@ -49,6 +59,7 @@ RUN ./configure CFLAGS=-fPIC --with-python=/usr/bin/python3 --with-apxs=/usr/bin
 COPY ./requirements.txt /var/www/apache-flask/requirements.txt
 RUN pip3 install -r /var/www/apache-flask/requirements.txt
 RUN pip3 freeze
+RUN ln -s /usr/local/python3.7/bin/alembic /usr/bin/alembic
 
 # Copy over the apache configuration file and enable the site
 COPY ./apache-flask.conf /etc/apache2/sites-available/apache-flask.conf
@@ -58,6 +69,10 @@ RUN a2enmod headers
 # Copy over the wsgi file
 COPY ./apache-flask.wsgi /var/www/apache-flask/apache-flask.wsgi
 COPY ./app /var/www/apache-flask/app/
+COPY ./migrate /var/www/apache-flask/migrate/
+COPY ./model /var/www/apache-flask/model/
+COPY ./alembic.ini /var/www/apache-flask/
+RUN mkdir /var/www/apache-flask/db
 
 RUN a2dissite 000-default.conf
 RUN a2ensite apache-flask.conf
@@ -65,6 +80,13 @@ RUN a2ensite apache-flask.conf
 EXPOSE 80
 
 WORKDIR /var/www/apache-flask
+
+# Migrate Database & Create DB File
+RUN alembic upgrade head && \
+    alembic revision --autogenerate && \
+    alembic upgrade head && \
+    python3 ./model/main.py && \
+    chown -R www-data:www-data /var/www/apache-flask/db
 
 # CMD ["/bin/bash"]
 CMD  /usr/sbin/apache2ctl -D FOREGROUND
