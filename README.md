@@ -106,7 +106,7 @@ Webサーバーは特に想定していませんが、コンテンツのビル�
 - ESPr Door Sensor への給電、および、これと接続した FTDI USBシリアル変換アダプター をPCにUSB接続します。
     - ESPr Door Sensor のジャンパーソケットは [PROG] 側に接続しておきます。
     - FTDI USBシリアル変換アダプター のジャンパーソケットは [3.3V] 側に接続しておきます。
-    - 詳しくはスイッチサイエンス社 Wiki (公式) を参照
+    - バイナリーの書き込みにあたっては ESP8266 固有の設定が必要となります。詳しくはスイッチサイエンス社 Wiki (公式) を参照。
         - http://trac.switch-science.com/wiki/ESP-DOOR
 - Arduino IDE から `/sensor/ESPrDoorSensor.ino` を開きます。
 - `/sensor/settings.h` を作成し、環境依存する値のマクロを定義します。
@@ -130,6 +130,8 @@ Webサーバーは特に想定していませんが、コンテンツのビル�
 
 - コマンドライン上で `/frontend` に移動した状態で以下のコマンドで Node.js で使用する依存パッケージをインストールします。
     - `$ yarn`
+- `/frontend/src/js/settings.js` を作成し、環境依存する値 (APIサーバーのURL、末尾に / を含まないもの) を定義します。
+    - `export const apiServerURLBase = 'http://HOSTNAME';`
 - 以下のコマンドで公開ファイル群をビルドします。
     - `$ yarn run webpack`
         - 開発モードは `/frontend/webpack.config.js` のENV を `"development"` とします。
