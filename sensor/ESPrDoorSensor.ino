@@ -16,6 +16,9 @@ const char* host = HOSTNAME;
 const int port = PORT;
 WiFiClient client;
 
+// 機器固有設定
+const char* TOILET_ID = "11";
+
 // LED I/O ピン番号
 const int LED = 4;
 // リードスイッチ I/O ピン番号
@@ -71,17 +74,19 @@ void loop() {
   // リクエスト生成
   String url;
   if(door_state == 0) {
-    url += "/close/";
+    url += "/action/close/";
   } else {
-    url += "/open/";
+    url += "/action/open/";
   }
-  url += system_adc_read();  // バッテリーの電圧1/10
+  url += TOILET_ID;  // トイレのID
+  // url += system_adc_read();  // バッテリーの電圧1/10
   Serial.print("Requesting URL: ");
+  Serial.print(host);
   Serial.println(url);
 
-  // GETリクエスト実行
+  // POSTリクエスト実行
   client.print(
-    String("GET ") + url + " HTTP/1.1\r\n" +
+    String("POST ") + url + " HTTP/1.1\r\n" +
     "Host: " + host + "\r\n" + 
     "Connection: close\r\n\r\n"
   );
@@ -90,10 +95,10 @@ void loop() {
 
   // リードスイッチの状態に応じて異なる待機時間で待機
   if(door_state == CLOSE) {
-    Serial.println("DEEP SLEEP 60s");
+    Serial.println("DEEP SLEEP...");
     ESP.deepSleep(0, WAKE_RF_DEFAULT);    //ドアが閉じている間はドアが開くまで待機
   } else {
-    Serial.println("DEEP SLEEP");
+    Serial.println("DEEP SLEEP...");
     ESP.deepSleep(0, WAKE_RF_DEFAULT);    //ドアが開いている間はドアが閉じるまで待機
   }
   delay(1000);
