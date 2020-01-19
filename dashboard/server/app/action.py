@@ -6,6 +6,7 @@ sys.path.insert(0, ".")
 from datetime import datetime as dt
 from sqlalchemy import create_engine
 from sqlalchemy.orm import sessionmaker
+from sqlalchemy.pool import SingletonThreadPool
 from flask import Blueprint, request, jsonify, Response
 action = Blueprint("action", __name__, url_prefix="/action")
 
@@ -25,39 +26,43 @@ def open(toilet_id: int) -> Response:
             message: 補足メッセージ,
         }
     """
+    from model.app_state import AppState
     from model.toilet import Toilet
     from model.toilet_status import ToiletStatus
+    print(toilet_id)
 
     # セッション作成
-    engine = create_engine("sqlite:///db/toilet.db")
+    engine = create_engine("sqlite:///db/toilet.db", poolclass=SingletonThreadPool)
     session = sessionmaker(bind=engine)()
 
     # 現在のシステムモードを取得
-    current_state = session.query(AppState.state).filter(AppState.id == 1).first()
+    current_state = session.query(AppState.state).filter(AppState.id == 1).one()[0]
     if current_state == 0:
         # 停止モード
+        message = "システムモードが停止状態です。すべての入退室ログは記録されません。"
         return jsonify({
             "success": False,
-            "message": "システムモードが停止状態です。すべての入退室ログは記録されません。"
+            "message": message
         })
 
     # 現在の在室状況を取得
-    is_closed = session.query(Toilet.is_closed).filter(Toilet.id == toilet_id).first()
+    is_closed = session.query(Toilet.is_closed).filter(Toilet.id == toilet_id).one()[0]
     if not is_closed:
         # 既に空室なので変化なし
+        message = f"トイレ #{toilet_id} は既に空室です。重複防止のため退室ログは記録されません。"
         return jsonify({
             "success": False,
-            "message": f"トイレ #{toilet_id} は既に空室です。重複防止のため退室ログは記録されません。"
+            "message": message
         })
 
     # 現在の在室状況を更新
-    session \
+    target_toilet = session \
         .query(Toilet) \
         .filter(Toilet.id == toilet_id) \
-        .query.update({
-            Toilet.is_closed: False,
-            Toilet.modified_time: dt.now()
-        })
+        .one()
+    target_toilet.is_closed = False
+    target_toilet.modified_time = dt.now()
+    session.add(target_toilet)
 
     # トイレのドアが開いたことを表すイベントをトランザクションテーブルに追加
     session.add(ToiletStatus(
@@ -85,45 +90,49 @@ def close(toilet_id: int) -> Response:
             message: 補足メッセージ,
         }
     """
+    from model.app_state import AppState
     from model.toilet import Toilet
     from model.toilet_status import ToiletStatus
+    print(toilet_id)
 
     # セッション作成
     engine = create_engine("sqlite:///db/toilet.db")
     session = sessionmaker(bind=engine)()
 
     # 現在のシステムモードを取得
-    current_state = session.query(AppState.state).filter(AppState.id == 1).first()
+    current_state = session.query(AppState.state).filter(AppState.id == 1).one()[0]
     if current_state == 0:
         # 停止モード
+        message = "システムモードが停止状態です。すべての入退室ログは記録されません。"
         return jsonify({
             "success": False,
-            "message": "システムモードが停止状態です。すべての入退室ログは記録されません。"
+            "message": message
         })
 
     # 現在の在室状況を取得
-    is_closed = session.query(Toilet.is_closed).filter(Toilet.id == toilet_id).first()
+    is_closed = session.query(Toilet.is_closed).filter(Toilet.id == toilet_id).one()[0]
     if is_closed:
         # 既に使用中なので変化なし
+        message = f"トイレ #{toilet_id} は既に使用中です。重複防止のため入室ログは記録されません。"
         return jsonify({
             "success": False,
-            "message": f"トイレ #{toilet_id} は既に使用中です。重複防止のため入室ログは記録されません。"
+            "message": message
         })
 
     # 現在の在室状況を更新
-    session \
+    target_toilet = session \
         .query(Toilet) \
         .filter(Toilet.id == toilet_id) \
-        .query.update({
-            Toilet.is_closed: True,
-            Toilet.modified_time: dt.now()
-        })
+        .one()
+    target_toilet.is_closed = True
+    target_toilet.modified_time = dt.now()
+    session.add(target_toilet)
 
     # トイレのドアが閉められたことを表すイベントをトランザクションテーブルに追加
     session.add(ToiletStatus(
         toilet_id=toilet_id,
         is_closed=True,
-        create_time=dt.now()
+        created_time=dt.now()
     ))
 
     session.commit()
@@ -163,13 +172,12 @@ def emergency() -> Response:
         next_state = 1
         next_state_name = "再開"
 
-    session \
+    target_state = session \
         .query(AppState) \
         .filter(AppState.id == 1) \
-        .update({
-            AppState.state: next_state,
-            AppState.modified_time: dt.now()
-        })
+        .one()
+    target_state.state = next_state
+    target_state.modified_time = dt.now()
 
     session.commit()
     return jsonify({

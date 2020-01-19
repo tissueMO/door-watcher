@@ -91,7 +91,7 @@ const fetchCurrentStatus = (isLoop) => {
     final: () => {
       if (isLoop) {
         // 定期的に現況を取得
-        setTimeout(fetchCurrentStatus, 5000);
+        setTimeout(() => fetchCurrentStatus(true), 5000);
       }
     }
   });
