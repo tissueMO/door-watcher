@@ -14,13 +14,14 @@ class APIRule {
     this.urlSuffix = urlSuffix;
   }
 
-  call ({ success, fail, final } = {}) {
+  call ({ success, fail, final, loadingSpinner = true } = {}) {
     callAPI({
       url: `${this.url}${this.urlSuffix}`,
       httpMethod: this.httpMethod,
       success: success,
       fail: fail,
-      final: final
+      final: final,
+      loadingSpinner: loadingSpinner
     });
   }
 }
@@ -48,8 +49,10 @@ export const apiRules = {
  * @param {function} fail 失敗時の処理
  * @param {function} final 終了時の共通処理
  */
-export const callAPI = ({ url, httpMethod = 'GET', success, fail, final } = {}) => {
-  Common.viewLoadingSpinner(true);
+export const callAPI = ({ url, httpMethod = 'GET', success, fail, final, loadingSpinner = true } = {}) => {
+  if (loadingSpinner) {
+    Common.viewLoadingSpinner(true);
+  }
 
   fetch(`${Settings.apiServerURLBase}${url}`, { method: httpMethod })
     .then(response => {
@@ -74,6 +77,8 @@ export const callAPI = ({ url, httpMethod = 'GET', success, fail, final } = {}) 
       if (final) {
         final();
       }
-      Common.viewLoadingSpinner(false);
+      if (loadingSpinner) {
+        Common.viewLoadingSpinner(false);
+      }
     });
 };
