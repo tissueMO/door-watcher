@@ -123,7 +123,7 @@ Webサーバーは特に想定していませんが、コンテンツのビル�
     - `$ docker build -t {TAG_NAME} .`
 - ビルドに失敗した場合、適宜Dockerfileを修正して下さい。
 - ビルドが終わったら以下のコマンドでコンテナーを起動します。
-    - `$ docker run -p 80:80 --rm -d {TAG_NAME}`
+    - `$ docker run -p 80:80 -e TZ=Asia/Tokyo --rm -d {TAG_NAME}`
 
 
 ### フロント部 [front]
@@ -170,8 +170,9 @@ Webサーバーは特に想定していませんが、コンテンツのビル�
     - `$ docker exec -it {CONTAINER_ID} bash`
     - `# tail -f /var/log/apache2/access.log`
         - クライアントがアクセスしてきたURLとステータスコードを確認できます。
-    - `# tail -f /var/log/apache2/error.log`
+    - `# tail -f /var/log/apache2/error.log | perl -nle 's/\?\\([a-f\d]{3})/chr($1)/ieg;s/\\x([a-f\d]{2})/pack("C", hex($1))/ieg;print $_;'`
         - サーバーアプリケーション内でエラー発生した際のスタックトレースやアプリケーションが吐き出したログを確認できます。
+        - パイプ(|)で繋いだ後ろのコマンドは、日本語を含むマルチバイト文字が文字化けしてしまう問題を解消するためのものです。
 
 
 ### フロント部 [front]
