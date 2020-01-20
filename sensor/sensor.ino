@@ -17,8 +17,8 @@ const int port = PORT;
 WiFiClient client;
 
 // 機器固有設定
-const char* TOILET_ID = "11";
-// const char* TOILET_ID = "21";
+// const char* TOILET_ID = "11";
+const char* TOILET_ID = "21";
 // const char* TOILET_ID = "31";
 // const char* TOILET_ID = "32";
 // const char* TOILET_ID = "41";
