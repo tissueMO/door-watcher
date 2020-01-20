@@ -58,7 +58,8 @@ const fetchCurrentStatus = (isLoop) => {
         $('.js-status-item:not(.js-status-item-template)').remove();
 
         if (json.success === false) {
-          // 取得できなかったときはエラー内容を表示する
+          // 取得できなかったときはエラー内容を出力する
+          Common.toggleValidMode(false);
           throw new Error(`${json.message}`);
         }
 
@@ -170,11 +171,19 @@ const fetchLogs = () => {
       // 既存の現況をすべてクリア
       $('.js-logboard-canvas:not(.js-logboard-canvas-template)').remove();
 
+      if (json.success === false) {
+        // 取得できなかったときはエラー内容を出力する
+        throw new Error(`${json.message}`);
+      }
+
+      // 出力グラフ情報
+      const graphs = json.graphs;
+
       // 系列色を生成
-      const colors = palette('mpn65', json.length).map(hex => `#${hex}`);
+      const colors = palette('mpn65', graphs.length).map(hex => `#${hex}`);
 
       // 系列分だけグラフを生成
-      json.forEach((item, index) => {
+      graphs.forEach((item, index) => {
         // テンプレート要素からキャンバスをコピー
         const $newItem = $('.js-logboard-canvas-template')
           .clone()
