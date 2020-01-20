@@ -11,6 +11,11 @@ const API = require('./call-api.js');
 const Common = require('./common.js');
 const dateformat = require('dateformat');
 
+/**
+ * 前回取得した現況情報 (キャッシュ用)
+ */
+let previousFetchedStatusCache;
+
 $(() => {
   if (0 < $('.js-dashboard').length) {
     // ダッシュボード用: 自動で現況取得
@@ -30,60 +35,77 @@ $(() => {
  */
 const fetchCurrentStatus = (isLoop) => {
   API.apiRules.fetchCurrentStatus.call({
+    loadingSpinner: false,
     success: json => {
       Common.toggleValidMode(true);
 
-      // 既存の現況をすべてクリア
-      $('.js-status-item:not(.js-status-item-template)').remove();
-
-      if (json.success === false) {
-        // 取得できなかったときはエラー内容を表示する
-        throw new Error(`${json.message}`);
+      if (JSON.stringify(json) === previousFetchedStatusCache) {
+        console.info('取得した現況情報が前回の結果と合致しているため画面更新をスキップします。');
+        return;
       }
 
-      for (const item of json.status) {
-        const $newItem = $('.js-status-item-template')
-          .clone()
-          .removeClass('js-status-item-template d-none');
+      // 今回の現況情報を保管
+      previousFetchedStatusCache = JSON.stringify(json);
 
-        if (item.valid === true) {
-          $newItem.find('.js-status-invalid').remove();
-          if (item.name.includes('男')) {
-            $newItem.find('.js-status-valid').addClass('callout-primary');
-          } else {
-            $newItem.find('.js-status-valid').addClass('callout-danger');
-          }
-          $newItem.find('.js-status-name').text(item.name);
-          $newItem.find('.js-status-rate').text(item.rate100);
-          $newItem.find('.js-status-progressbar')
-            .attr('aria-valuenow', item.used)
-            .attr('aria-valuemax', item.max)
-            .css('width', `${item.rate100}%`)
-            .addClass(
-              (100 <= item.rate100) ? 'bg-danger'
-                : (50 <= item.rate100) ? 'bg-warning'
-                  : 'bg-success'
-            );
-          const availableCount = item.max - item.used;
-          if (0 < availableCount) {
-            $newItem.find('.js-status-available').text(availableCount);
-          } else {
-            $newItem.find('.js-status-available').text('');
-            $newItem.find('.js-status-available-unit').text('無し');
-          }
-        } else {
-          $newItem.find('.js-status-valid').remove();
-          if (item.name.includes('男')) {
-            $newItem.find('.js-status-invalid').addClass('callout-primary');
-          } else {
-            $newItem.find('.js-status-invalid').addClass('callout-danger');
-          }
-          $newItem.find('.js-status-name').text(item.name);
+      // 画面変更を行っていることを表すために一時的にローディングスピナーを出す
+      Common.viewLoadingSpinner(true);
+
+      // 一定時間経過後に画面更新
+      setTimeout(() => {
+        Common.viewLoadingSpinner(false);
+
+        // 既存の現況をすべてクリア
+        $('.js-status-item:not(.js-status-item-template)').remove();
+
+        if (json.success === false) {
+          // 取得できなかったときはエラー内容を表示する
+          throw new Error(`${json.message}`);
         }
 
-        // 要素追加
-        $('.js-dashboard-valid').append($newItem);
-      }
+        for (const item of json.status) {
+          const $newItem = $('.js-status-item-template')
+            .clone()
+            .removeClass('js-status-item-template d-none');
+
+          if (item.valid === true) {
+            $newItem.find('.js-status-invalid').remove();
+            if (item.name.includes('男')) {
+              $newItem.find('.js-status-valid').addClass('callout-primary');
+            } else {
+              $newItem.find('.js-status-valid').addClass('callout-danger');
+            }
+            $newItem.find('.js-status-name').text(item.name);
+            $newItem.find('.js-status-rate').text(item.rate100);
+            $newItem.find('.js-status-progressbar')
+              .attr('aria-valuenow', item.used)
+              .attr('aria-valuemax', item.max)
+              .css('width', `${item.rate100}%`)
+              .addClass(
+                (100 <= item.rate100) ? 'bg-danger'
+                  : (50 <= item.rate100) ? 'bg-warning'
+                    : 'bg-success'
+              );
+            const availableCount = item.max - item.used;
+            if (0 < availableCount) {
+              $newItem.find('.js-status-available').text(availableCount);
+            } else {
+              $newItem.find('.js-status-available').text('');
+              $newItem.find('.js-status-available-unit').text('無し');
+            }
+          } else {
+            $newItem.find('.js-status-valid').remove();
+            if (item.name.includes('男')) {
+              $newItem.find('.js-status-invalid').addClass('callout-primary');
+            } else {
+              $newItem.find('.js-status-invalid').addClass('callout-danger');
+            }
+            $newItem.find('.js-status-name').text(item.name);
+          }
+
+          // 要素追加
+          $('.js-dashboard-valid').append($newItem);
+        }
+      }, 250);
     },
     fail: e => {
       Common.toggleValidMode(false);
