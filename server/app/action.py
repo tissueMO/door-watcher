@@ -7,11 +7,15 @@ from datetime import datetime as dt
 from sqlalchemy import create_engine
 from sqlalchemy.orm import sessionmaker
 from sqlalchemy.pool import SingletonThreadPool
-from flask import Blueprint, request, jsonify, Response
-action = Blueprint("action", __name__, url_prefix="/action")
 
+# Flask サブモジュールとして必要なパッケージの取り込みと設定を行う
+from flask import Blueprint, request, jsonify, Response
 from flask_cors import CORS
+import app.common as Common
+action = Blueprint("action", __name__, url_prefix="/action")
 CORS(action)
+logger = Common.get_logger("action")
+
 
 @action.route("/open/<int:toilet_id>", methods=["POST"])
 def open(toilet_id: int) -> Response:
@@ -29,53 +33,60 @@ def open(toilet_id: int) -> Response:
     from model.app_state import AppState
     from model.toilet import Toilet
     from model.toilet_status import ToiletStatus
-    print(toilet_id)
+    logger.info(f"[open] API Called. :toilet_id={toilet_id}")
 
-    # セッション作成
-    engine = create_engine("sqlite:///db/toilet.db", poolclass=SingletonThreadPool)
-    session = sessionmaker(bind=engine)()
+    with Common.create_session() as session:
+        current_state = Common.get_system_mode(session)
+        if current_state == Common.SYSTEM_MODE_STOP:
+            message = "システムモードが停止状態です。すべての入退室ログは記録されません。"
+            logger.info(f"[open] API Response. :success={False} "\
+                        f":message={message}")
+            return jsonify({
+                "success": False,
+                "message": message
+            })
 
-    # 現在のシステムモードを取得
-    current_state = session.query(AppState.state).filter(AppState.id == 1).one()[0]
-    if current_state == 0:
-        # 停止モード
-        message = "システムモードが停止状態です。すべての入退室ログは記録されません。"
-        return jsonify({
-            "success": False,
-            "message": message
-        })
+        # 現在の在室状況を取得
+        is_closed = session \
+            .query(Toilet.is_closed) \
+            .filter(Toilet.id == toilet_id) \
+            .one() \
+            .is_closed
+        if not is_closed:
+            message = f"トイレ #{toilet_id} は既に空室です。重複防止のため退室ログは記録されません。"
+            logger.info(f"[open] API Response. :success={False} "\
+                        f":message={message}")
+            return jsonify({
+                "success": False,
+                "message": message
+            })
 
-    # 現在の在室状況を取得
-    is_closed = session.query(Toilet.is_closed).filter(Toilet.id == toilet_id).one()[0]
-    if not is_closed:
-        # 既に空室なので変化なし
-        message = f"トイレ #{toilet_id} は既に空室です。重複防止のため退室ログは記録されません。"
-        return jsonify({
-            "success": False,
-            "message": message
-        })
+        # 現在の在室状況を更新
+        target_toilet = session \
+            .query(Toilet) \
+            .filter(Toilet.id == toilet_id) \
+            .one()
+        target_toilet.is_closed = False
+        target_toilet.modified_time = dt.now()
+        session.add(target_toilet)
 
-    # 現在の在室状況を更新
-    target_toilet = session \
-        .query(Toilet) \
-        .filter(Toilet.id == toilet_id) \
-        .one()
-    target_toilet.is_closed = False
-    target_toilet.modified_time = dt.now()
-    session.add(target_toilet)
+        # トイレのドアが開いたことを表すイベントをトランザクションテーブルに追加
+        session.add(ToiletStatus(
+            toilet_id=toilet_id,
+            is_closed=False,
+            created_time=dt.now()
+        ))
 
-    # トイレのドアが開いたことを表すイベントをトランザクションテーブルに追加
-    session.add(ToiletStatus(
-        toilet_id=toilet_id,
-        is_closed=False,
-        created_time=dt.now()
-    ))
+        session.commit()
 
-    session.commit()
+    message = f"トイレ #{toilet_id} が空室になりました。"
+    logger.info(f"[open] API Response. :success={True} "\
+                f":message={message}")
     return jsonify({
         "success": True,
-        "message": f"トイレ #{toilet_id} が空室になりました。"
+        "message": message
     })
+
 
 @action.route("/close/<int:toilet_id>", methods=["POST"])
 def close(toilet_id: int) -> Response:
@@ -90,56 +101,62 @@ def close(toilet_id: int) -> Response:
             message: 補足メッセージ,
         }
     """
-    from model.app_state import AppState
     from model.toilet import Toilet
     from model.toilet_status import ToiletStatus
-    print(toilet_id)
+    logger.info(f"[close] API Called. :toilet_id={toilet_id}")
 
-    # セッション作成
-    engine = create_engine("sqlite:///db/toilet.db")
-    session = sessionmaker(bind=engine)()
+    with Common.create_session() as session:
+        current_state = Common.get_system_mode(session)
+        if current_state == Common.SYSTEM_MODE_STOP:
+            message = "システムモードが停止状態です。すべての入退室ログは記録されません。"
+            logger.info(f"[close] API Response. :success={False} "\
+                        f":message={message}")
+            return jsonify({
+                "success": False,
+                "message": message
+            })
 
-    # 現在のシステムモードを取得
-    current_state = session.query(AppState.state).filter(AppState.id == 1).one()[0]
-    if current_state == 0:
-        # 停止モード
-        message = "システムモードが停止状態です。すべての入退室ログは記録されません。"
-        return jsonify({
-            "success": False,
-            "message": message
-        })
+        # 現在の在室状況を取得
+        is_closed = session \
+            .query(Toilet.is_closed) \
+            .filter(Toilet.id == toilet_id) \
+            .one() \
+            .is_closed
+        if is_closed:
+            message = f"トイレ #{toilet_id} は既に使用中です。重複防止のため入室ログは記録されません。"
+            logger.info(f"[close] API Response. :success={False} "\
+                        f":message={message}")
+            return jsonify({
+                "success": False,
+                "message": message
+            })
 
-    # 現在の在室状況を取得
-    is_closed = session.query(Toilet.is_closed).filter(Toilet.id == toilet_id).one()[0]
-    if is_closed:
-        # 既に使用中なので変化なし
-        message = f"トイレ #{toilet_id} は既に使用中です。重複防止のため入室ログは記録されません。"
-        return jsonify({
-            "success": False,
-            "message": message
-        })
+        # 現在の在室状況を更新
+        target_toilet = session \
+            .query(Toilet) \
+            .filter(Toilet.id == toilet_id) \
+            .one()
+        target_toilet.is_closed = True
+        target_toilet.modified_time = dt.now()
+        session.add(target_toilet)
 
-    # 現在の在室状況を更新
-    target_toilet = session \
-        .query(Toilet) \
-        .filter(Toilet.id == toilet_id) \
-        .one()
-    target_toilet.is_closed = True
-    target_toilet.modified_time = dt.now()
-    session.add(target_toilet)
+        # トイレのドアが閉められたことを表すイベントをトランザクションテーブルに追加
+        session.add(ToiletStatus(
+            toilet_id=toilet_id,
+            is_closed=True,
+            created_time=dt.now()
+        ))
 
-    # トイレのドアが閉められたことを表すイベントをトランザクションテーブルに追加
-    session.add(ToiletStatus(
-        toilet_id=toilet_id,
-        is_closed=True,
-        created_time=dt.now()
-    ))
+        session.commit()
 
-    session.commit()
+    message = f"トイレ #{toilet_id} が使用中になりました。"
+    logger.info(f"[close] API Response. :success={True} "\
+                f":message={message}")
     return jsonify({
         "success": True,
-        "message": f"トイレ #{toilet_id} が使用中になりました。"
+        "message": message
     })
+
 
 @action.route("/emergency", methods=["POST"])
 def emergency() -> Response:
@@ -147,39 +164,37 @@ def emergency() -> Response:
 
     Returns:
         Response -- application/json = {
-            valid: 0 or 1,
-            action: "停止" or "再開",
+            valid: 0 or 1,            // 反転後のステート番号
+            action: "停止" or "再開",  // 反転後のステート名
         }
     """
     from model.app_state import AppState
+    logger.info(f"[emergency] API Called.")
 
-    # セッション作成
-    engine = create_engine("sqlite:///db/toilet.db")
-    session = sessionmaker(bind=engine)()
+    with Common.create_session() as session:
+        # 現在のシステムモードを取得
+        current_state = Common.get_system_mode(session)
 
-    # 現在の緊急停止モードを取得
-    current_state = session \
-        .query(AppState.state) \
-        .filter(AppState.id == 1) \
-        .first() \
-        .state
+        # システムモードを反転させて更新
+        if current_state == Common.SYSTEM_MODE_STOP:
+            next_state = Common.SYSTEM_MODE_RUNNING
+            next_state_name = "再開"
+        else:
+            next_state = Common.SYSTEM_MODE_STOP
+            next_state_name = "停止"
 
-    # 緊急停止モードを更新
-    if current_state == 1:
-        next_state = 0
-        next_state_name = "停止"
-    else:
-        next_state = 1
-        next_state_name = "再開"
+        target_state = session \
+            .query(AppState) \
+            .filter(AppState.id == Common.SYSTEM_MODE_APP_STATE_ID) \
+            .one()
+        target_state.state = next_state
+        target_state.modified_time = dt.now()
 
-    target_state = session \
-        .query(AppState) \
-        .filter(AppState.id == 1) \
-        .one()
-    target_state.state = next_state
-    target_state.modified_time = dt.now()
+        session.commit()
 
-    session.commit()
+    logger.info(f"[emergency] API Response. "\
+                f":valid={next_state} :action={next_state_name}")
+
     return jsonify({
         "valid": next_state,
         "action": next_state_name

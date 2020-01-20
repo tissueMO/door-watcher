@@ -66,6 +66,7 @@ COPY ./app /var/www/apache-flask/app/
 COPY ./migrate /var/www/apache-flask/migrate/
 COPY ./model /var/www/apache-flask/model/
 COPY ./alembic.ini /var/www/apache-flask/
+COPY ./logging.ini /var/www/apache-flask/
 RUN mkdir /var/www/apache-flask/db
 
 # Apache2の mod_wsgi に関する設定ファイルを適用
