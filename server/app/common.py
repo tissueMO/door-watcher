@@ -82,7 +82,7 @@ def create_session() -> SessionContext:
     Returns:
         Session -- DB接続セッション
     """
-    return SessionContextFactory().create()
+    return SessionContextFactory(echo=True).create()
 
 
 def get_system_mode(session: Session) -> int:
