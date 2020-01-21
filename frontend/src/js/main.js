@@ -95,11 +95,9 @@ const fetchCurrentStatus = (isLoop) => {
             }
           } else {
             $newItem.find('.js-status-valid').remove();
-            if (item.name.includes('男')) {
-              $newItem.find('.js-status-invalid').addClass('callout-primary');
-            } else {
-              $newItem.find('.js-status-invalid').addClass('callout-danger');
-            }
+            $newItem.find('.js-status-invalid').addClass(
+              item.name.includes('男') ? 'callout-primary' : 'callout-danger'
+            );
             $newItem.find('.js-status-name').text(item.name);
           }
 
@@ -157,9 +155,9 @@ const fetchLogs = () => {
   // APIパラメーターをセット
   const beginDate = new Date();
   const endDate = new Date(beginDate.getTime());
-  beginDate.setDate(endDate.getDate() - 5);
   const format = 'yyyymmdd';
   const step = 10;
+  beginDate.setDate(endDate.getDate() - 5);
   API.apiRules.fetchLogs.urlSuffix = `/${dateformat(beginDate, format)}/${dateformat(endDate, format)}/${step}`;
 
   API.apiRules.fetchLogs.call({
