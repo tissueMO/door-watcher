@@ -6,6 +6,7 @@ sys.path.insert(0, ".")
 import datetime
 from datetime import datetime as dt
 from sqlalchemy import func, asc, desc
+from sqlalchemy.orm.exc import NoResultFound
 
 # Flask サブモジュールとして必要なパッケージの取り込みと設定を行う
 from flask import Blueprint, request, jsonify, Response
@@ -52,6 +53,12 @@ def status():
             .all()
 
         current_state = Common.get_system_mode(session)
+        if current_state is None:
+            message = "システムモードを取得できませんでした。サーバー上のエラーログを確認して下さい。"
+            return jsonify({
+                "success": False,
+                "message": message
+            })
         if current_state == Common.SYSTEM_MODE_STOP:
             message = "現在システムモード「停止」のため、現況を取得できません。"\
                       "現況を取得するためにはシステムモード「再開」に切り替えて下さい。"
@@ -73,14 +80,19 @@ def status():
             if not toilet.Toilet.valid:
                 result["status"][-1]["used"] = 0
             else:
-                result["status"][-1]["used"] = session \
-                    .query(func.count().label("used")) \
-                    .filter(
-                        Toilet.name == toilet[0].name,
-                        Toilet.is_closed == True
-                    ) \
-                    .first() \
-                    .used
+                try:
+                    result["status"][-1]["used"] = session \
+                        .query(func.count().label("used")) \
+                        .filter(
+                            Toilet.name == toilet[0].name,
+                            Toilet.is_closed == True
+                        ) \
+                        .one() \
+                        .used
+                except NoResultFound:
+                    logger.warning(f"[status] API Error. トイレ [{toilet[0].name}] のレコード数の取得に失敗しました。トイレマスターの定義を確認して下さい。")
+                    result["status"][-1]["used"] = 0
+
             result["status"][-1]["rate100"] = \
                 int(result["status"][-1]["used"] / toilet.max * 100)
 
@@ -148,6 +160,12 @@ def log(begin_date: str, end_date: str, step_minutes: int):
             .all()
 
         current_state = Common.get_system_mode(session)
+        if current_state is None:
+            message = "システムモードを取得できませんでした。サーバー上のエラーログを確認して下さい。"
+            return jsonify({
+                "success": False,
+                "message": message
+            })
         if current_state == Common.SYSTEM_MODE_STOP:
             message = "システムモードが停止状態です。入退室ログは返却しません。"
             logger.info(f"[log] API Response. :success={False} "\

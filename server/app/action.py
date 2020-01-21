@@ -6,6 +6,7 @@ sys.path.insert(0, ".")
 from datetime import datetime as dt
 from sqlalchemy import create_engine
 from sqlalchemy.orm import sessionmaker
+from sqlalchemy.orm.exc import NoResultFound
 from sqlalchemy.pool import SingletonThreadPool
 
 # Flask サブモジュールとして必要なパッケージの取り込みと設定を行う
@@ -37,6 +38,12 @@ def open(toilet_id: int) -> Response:
 
     with Common.create_session() as session:
         current_state = Common.get_system_mode(session)
+        if current_state is None:
+            message = "システムモードを取得できませんでした。サーバー上のエラーログを確認して下さい。"
+            return jsonify({
+                "success": False,
+                "message": message
+            })
         if current_state == Common.SYSTEM_MODE_STOP:
             message = "システムモードが停止状態です。すべての入退室ログは記録されません。"
             logger.info(f"[open] API Response. :success={False} "\
@@ -47,11 +54,21 @@ def open(toilet_id: int) -> Response:
             })
 
         # 現在の在室状況を取得
-        is_closed = session \
-            .query(Toilet.is_closed) \
-            .filter(Toilet.id == toilet_id) \
-            .one() \
-            .is_closed
+        try:
+            is_closed = session \
+                .query(Toilet.is_closed) \
+                .filter(Toilet.id == toilet_id) \
+                .one() \
+                .is_closed
+        except NoResultFound:
+            message = f"トイレ #{toilet_id} レコードが見つかりません。トイレマスター上のID設定とAPI呼び出し元のIDが合致することを確認して下さい。"
+            logger.error(f"[open] API Response. :success={False} "\
+                         f":message={message}")
+            return jsonify({
+                "success": False,
+                "message": message
+            })
+
         if not is_closed:
             message = f"トイレ #{toilet_id} は既に空室です。重複防止のため退室ログは記録されません。"
             logger.info(f"[open] API Response. :success={False} "\
@@ -62,10 +79,20 @@ def open(toilet_id: int) -> Response:
             })
 
         # 現在の在室状況を更新
-        target_toilet = session \
-            .query(Toilet) \
-            .filter(Toilet.id == toilet_id) \
-            .one()
+        try:
+            target_toilet = session \
+                .query(Toilet) \
+                .filter(Toilet.id == toilet_id) \
+                .one()
+        except NoResultFound:
+            message = f"トイレ #{toilet_id} レコードが見つかりません。トイレマスター上のID設定とAPI呼び出し元のIDが合致することを確認して下さい。"
+            logger.error(f"[open] API Response. :success={False} "\
+                         f":message={message}")
+            return jsonify({
+                "success": False,
+                "message": message
+            })
+
         target_toilet.is_closed = False
         target_toilet.modified_time = dt.now()
         session.add(target_toilet)
@@ -107,6 +134,12 @@ def close(toilet_id: int) -> Response:
 
     with Common.create_session() as session:
         current_state = Common.get_system_mode(session)
+        if current_state is None:
+            message = "システムモードを取得できませんでした。サーバー上のエラーログを確認して下さい。"
+            return jsonify({
+                "success": False,
+                "message": message
+            })
         if current_state == Common.SYSTEM_MODE_STOP:
             message = "システムモードが停止状態です。すべての入退室ログは記録されません。"
             logger.info(f"[close] API Response. :success={False} "\
@@ -117,11 +150,21 @@ def close(toilet_id: int) -> Response:
             })
 
         # 現在の在室状況を取得
-        is_closed = session \
-            .query(Toilet.is_closed) \
-            .filter(Toilet.id == toilet_id) \
-            .one() \
-            .is_closed
+        try:
+            is_closed = session \
+                .query(Toilet.is_closed) \
+                .filter(Toilet.id == toilet_id) \
+                .one() \
+                .is_closed
+        except NoResultFound:
+            message = f"トイレ #{toilet_id} レコードが見つかりません。トイレマスター上のID設定とAPI呼び出し元のIDが合致することを確認して下さい。"
+            logger.error(f"[close] API Response. :success={False} "\
+                         f":message={message}")
+            return jsonify({
+                "success": False,
+                "message": message
+            })
+
         if is_closed:
             message = f"トイレ #{toilet_id} は既に使用中です。重複防止のため入室ログは記録されません。"
             logger.info(f"[close] API Response. :success={False} "\
@@ -132,10 +175,20 @@ def close(toilet_id: int) -> Response:
             })
 
         # 現在の在室状況を更新
-        target_toilet = session \
-            .query(Toilet) \
-            .filter(Toilet.id == toilet_id) \
-            .one()
+        try:
+            target_toilet = session \
+                .query(Toilet) \
+                .filter(Toilet.id == toilet_id) \
+                .one()
+        except NoResultFound:
+            message = f"トイレ #{toilet_id} レコードが見つかりません。トイレマスター上のID設定とAPI呼び出し元のIDが合致することを確認して下さい。"
+            logger.error(f"[close] API Response. :success={False} "\
+                         f":message={message}")
+            return jsonify({
+                "success": False,
+                "message": message
+            })
+
         target_toilet.is_closed = True
         target_toilet.modified_time = dt.now()
         session.add(target_toilet)
@@ -174,6 +227,12 @@ def emergency() -> Response:
     with Common.create_session() as session:
         # 現在のシステムモードを取得
         current_state = Common.get_system_mode(session)
+        if current_state is None:
+            message = "システムモードを取得できませんでした。サーバー上のエラーログを確認して下さい。"
+            return jsonify({
+                "valid": None,
+                "action": message
+            })
 
         # システムモードを反転させて更新
         if current_state == Common.SYSTEM_MODE_STOP:
@@ -183,10 +242,20 @@ def emergency() -> Response:
             next_state = Common.SYSTEM_MODE_STOP
             next_state_name = "停止"
 
-        target_state = session \
-            .query(AppState) \
-            .filter(AppState.id == Common.SYSTEM_MODE_APP_STATE_ID) \
-            .one()
+        try:
+            target_state = session \
+                .query(AppState) \
+                .filter(AppState.id == Common.SYSTEM_MODE_APP_STATE_ID) \
+                .one()
+        except NoResultFound:
+            message = f"アプリケーション状態マスター id={1} のレコードが設定されていません。"
+            logger.error(f"[emergency] API Response. :valid={None} "
+                         f":action={message}")
+            return jsonify({
+                "valid": None,
+                "action": message
+            })
+
         target_state.state = next_state
         target_state.modified_time = dt.now()
 
