@@ -4,6 +4,7 @@
 from datetime import datetime as dt
 from sqlalchemy import create_engine
 from sqlalchemy.orm import sessionmaker
+from sqlalchemy.orm.exc import NoResultFound
 from sqlalchemy.orm.session import Session
 from sqlalchemy.pool import SingletonThreadPool
 import sys
@@ -91,14 +92,20 @@ def get_system_mode(session: Session) -> int:
         session {Session} -- DB接続セッション
 
     Returns:
-        int -- システムモード (SYSTEM_MODE_STOP=停止, SYSTEM_MODE_RUNNING=稼働)
+        int -- システムモード (SYSTEM_MODE_STOP=停止, SYSTEM_MODE_RUNNING=稼働), マスターデータを取得できなかった場合はNone
     """
     from model.app_state import AppState
-    return session \
-        .query(AppState.state) \
-        .filter(AppState.id == SYSTEM_MODE_APP_STATE_ID) \
-        .one() \
-        .state
+    logger = get_logger(__name__)
+
+    try:
+        return session \
+            .query(AppState.state) \
+            .filter(AppState.id == SYSTEM_MODE_APP_STATE_ID) \
+            .one() \
+            .state
+    except NoResultFound:
+        logger.error("Method Error. [get_system_mode] アプリケーション状態マスター id={1} のレコードが設定されていません")
+        return None
 
 
 def get_logger(name: str) -> logging.Logger:
