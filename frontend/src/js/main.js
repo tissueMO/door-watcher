@@ -70,11 +70,9 @@ const fetchCurrentStatus = (isLoop) => {
 
           if (item.valid === true) {
             $newItem.find('.js-status-invalid').remove();
-            if (item.name.includes('男')) {
-              $newItem.find('.js-status-valid').addClass('callout-primary');
-            } else {
-              $newItem.find('.js-status-valid').addClass('callout-danger');
-            }
+            $newItem.find('.js-status-valid').addClass(
+              item.name.includes('男') ? 'callout-primary' : 'callout-danger'
+            );
             $newItem.find('.js-status-name').text(item.name);
             $newItem.find('.js-status-rate').text(item.rate100);
             $newItem.find('.js-status-progressbar')
