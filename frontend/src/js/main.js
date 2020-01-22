@@ -16,6 +16,10 @@ const dateformat = require('dateformat');
  */
 let previousFetchedStatusCache;
 
+// Chart.js グローバル設定
+Chart.defaults.global.defaultFontFamily =
+  '"Noto Sans JP", "Hiragino Kaku Gothic ProN", "ヒラギノ角ゴ ProN W3", Meiryo, メイリオ, sans-serif';
+
 $(() => {
   if (0 < $('.js-dashboard').length) {
     // ダッシュボード用: 自動で現況取得
@@ -153,10 +157,14 @@ const fetchLogs = () => {
   // APIパラメーターをセット
   const beginDate = new Date();
   const endDate = new Date(beginDate.getTime());
+  const beginHoursPerDay = 9;
+  const endHoursPerDay = 19;
   const format = 'yyyymmdd';
-  const step = 10;
-  beginDate.setDate(endDate.getDate() - 5);
-  API.apiRules.fetchLogs.urlSuffix = `/${dateformat(beginDate, format)}/${dateformat(endDate, format)}/${step}`;
+  const stepHours = 1;
+  beginDate.setDate(endDate.getDate() - 7);
+  API.apiRules.fetchLogs.urlSuffix =
+    `/${dateformat(beginDate, format)}/${dateformat(endDate, format)}/` +
+    `${beginHoursPerDay}/${endHoursPerDay}/${stepHours}`;
 
   API.apiRules.fetchLogs.call({
     success: json => {
@@ -184,14 +192,51 @@ const fetchLogs = () => {
         const $newItem = $('.js-logboard-canvas-template')
           .clone()
           .removeClass('js-logboard-canvas-template d-none');
+        if (index === 0) {
+          $newItem.addClass('mb-5');
+        } else if (index + 1 <= graphs.length) {
+          $newItem.addClass('mt-5');
+        } else {
+          $newItem.addClass('my-5');
+        }
 
         item.data.datasets[0] = Object.assign(item.data.datasets[0], {
-          backgroundColor: `${colors[index]}11`,
-          borderColor: colors[index],
-          pointRadius: 3,
-          pointHitRadius: 6,
+          backgroundColor: `${colors[index]}66`,
+          hoverBackgroundColor: `${colors[index]}ff`,
+          borderColor: `${colors[index]}aa`,
+          borderWidth: 1,
           animation: true
         });
+        item.options = {
+          title: {
+            // グラフタイトル表示
+            display: true,
+            fontSize: 28,
+            text: item.data.datasets[0].label
+          },
+          legend: {
+            // 凡例非表示
+            display: false
+          },
+          scales: {
+            yAxes: [{
+              display: true,
+              scaleLabel: {
+                display: true,
+                fontSize: 18,
+                labelString: '使用回数'
+              },
+              ticks: {
+                beginAtZero: true,
+                userCallback: (label, index, labels) => {
+                  if (Math.floor(label) === label) {
+                    return label;
+                  }
+                }
+              }
+            }]
+          }
+        };
         new Chart($newItem, item);
 
         // 画面上に追加
