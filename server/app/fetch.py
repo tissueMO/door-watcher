@@ -102,14 +102,17 @@ def status():
     return jsonify(result)
 
 
-@fetch.route("/log/<begin_date>/<end_date>/<int:step_minutes>", methods=["GET"])
-def log(begin_date: str, end_date: str, step_minutes: int):
-    """指定期間における全トイレの使用率の推移を表したデータを返します。
+@fetch.route("/log/<begin_date>/<end_date>/<int:begin_hours_per_day>/<int:end_hours_per_day>/<int:step_hours>", methods=["GET"])
+def log(begin_date: str, end_date: str, begin_hours_per_day: int, end_hours_per_day: int, step_hours: int):
+    """指定期間、および日当たりそれぞれの時間帯におけるすべてのトイレの使用回数を表す Chart.js グラフ用データを返します。
+    このAPIでは、ドアが閉じられた回数をもとに集計します。
 
     Arguments:
         begin_date {str} -- 期間開始日 (%Y%m%d)
         end_date {str} -- 期間終了日 (%Y%m%d)
-        step_minutes {int} -- 期間内におけるサンプリング間隔 (分)
+        begin_hours_per_day {int} -- 日当たりの集計始端時間 (0-23)
+        end_hours_per_day {int} -- 日当たりの集計終端時間 (0-23)
+        step_hours {int} -- 期間内におけるサンプリング間隔 (1-24)、始端時間から終端時間の差をこの値で割り切れない場合は割り切れる時間まで延長します。
 
     Returns:
         Response -- application/json = {
@@ -137,11 +140,37 @@ def log(begin_date: str, end_date: str, step_minutes: int):
     from model.toilet import Toilet
     from model.toilet_status import ToiletStatus
     logger.info(f"[log] API Called. "\
-                f":begin_date={begin_date} :end_date={end_date} :step_minutes={step_minutes}")
+                f":begin_date={begin_date} :end_date={end_date} "\
+                f":begin_hours_per_day={begin_hours_per_day} :end_hours_per_day={end_hours_per_day} "\
+                f":step_hours={step_hours}")
 
     # パラメーター形式変換
     begin_datetime = dt.strptime(begin_date, Common.PARAM_DATETIME_FORMAT)
     end_datetime = dt.strptime(end_date, Common.PARAM_DATETIME_FORMAT)
+    if end_datetime < begin_datetime:
+        # 始端日と終端日の指定が逆になっていると判断
+        temp = begin_datetime
+        begin_datetime = end_datetime
+        end_datetime = temp
+        logger.warning(f"[log] API Parameter Check. :begin_datetime={end_datetime}->{begin_datetime} "\
+                       f":end_datetime={begin_datetime}->{end_datetime}")
+    if end_hours_per_day < begin_hours_per_day:
+        # 始端時間と終端時間の指定が逆になっていると判断
+        temp = begin_hours_per_day
+        begin_hours_per_day = end_hours_per_day
+        end_hours_per_day = temp
+        logger.warning(f"[log] API Parameter Check. :begin_hours_per_day={end_hours_per_day}->{begin_hours_per_day} "\
+                       f":end_hours_per_day={begin_hours_per_day}->{end_hours_per_day}")
+    if (end_hours_per_day - begin_hours_per_day) < step_hours:
+        # サンプリング間隔は始端時間と終端時間の差を超えることはできない: 日単位とする
+        raw_step_hours = step_hours
+        step_hours = end_hours_per_day - begin_hours_per_day
+        logger.warning(f"[log] API Parameter Check. :step_hours={raw_step_hours}->{step_hours}")
+    elif step_hours <= 0:
+        # サンプリング間隔が正しくない場合はデフォルトで3時間刻みとする
+        raw_step_hours = step_hours
+        step_hours = 3
+        logger.warning(f"[log] API Parameter Check. :step_hours={raw_step_hours}->{step_hours}")
 
     with Common.create_session() as session:
         # トイレマスターを取得
@@ -178,10 +207,30 @@ def log(begin_date: str, end_date: str, step_minutes: int):
         # 横軸ラベルを生成
         graphs = []
         labels = []
+        target_begin_and_end_pairs = []
+        current_begin_hours = begin_hours_per_day
+        current_end_hours = current_begin_hours + step_hours
         current_datetime = begin_datetime
+
         while current_datetime < end_datetime:
-            labels.append(dt.strftime(current_datetime, "%Y-%m-%d %H:%M"))
-            current_datetime += datetime.timedelta(minutes=step_minutes)
+            current_begin_datetime = current_datetime + datetime.timedelta(hours=current_begin_hours)
+            current_end_datetime = current_datetime + datetime.timedelta(hours=current_end_hours)
+            target_begin_and_end_pairs.append({
+                "begin": current_begin_datetime,
+                "end": current_end_datetime
+            })
+            labels.append(
+                f"{dt.strftime(current_begin_datetime, '%m-%d %H:%M')}~"\
+                f"{dt.strftime(current_end_datetime, '%H:%M')}"
+            )
+
+            if end_hours_per_day <= current_end_hours:
+                # 次の日へ回す
+                current_begin_hours = begin_hours_per_day
+                current_datetime += datetime.timedelta(days=1)
+            else:
+                current_begin_hours += step_hours
+            current_end_hours = current_begin_hours + step_hours
 
         # 系列ごとにグラフデータを分けて作成
         for i, series_toilet in enumerate(grouped_toilets):
@@ -214,26 +263,23 @@ def log(begin_date: str, end_date: str, step_minutes: int):
                 .order_by(asc(ToiletStatus.created_time)) \
                 .all()
 
-            # 先頭のサンプリング時刻から一定のサンプリング間隔でレコードを抽出していく
+            # 先頭のサンプリング時間から順にドアクローズイベントの件数を抽出していく
             data = []
-            delta_datetime = datetime.timedelta(minutes=step_minutes)
-            current_datetime = begin_datetime + delta_datetime
             start_index = 0
-            while current_datetime < end_datetime + delta_datetime:
+            for one_of_begin_and_end_pairs in target_begin_and_end_pairs:
                 sampling_count = 0
+
                 for n, target_status in enumerate(target_statuses_all[start_index:]):
-                    if target_status.created_time < current_datetime:
-                      # 対象区間内のレコードであればカウント
-                      sampling_count += 1
-                    else:
-                      # 対象区間から出た時点で抜ける
-                      start_index = n
-                      break
+                    if one_of_begin_and_end_pairs["begin"] <= target_status.created_time and \
+                            target_status.created_time < one_of_begin_and_end_pairs["end"]:
+                        # 対象区間内のレコードであればカウント
+                        sampling_count += 1
+                    elif one_of_begin_and_end_pairs["end"] <= target_status.created_time:
+                        # 対象区間から出た時点で抜ける
+                        start_index = n
+                        break
 
                 data.append(sampling_count)
-
-                # 次のサンプリング時刻に進める
-                current_datetime += delta_datetime
 
             # 出来上がったグラフデータをグラフリストに格納
             graph["data"]["datasets"][0]["data"] = data
