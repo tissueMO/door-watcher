@@ -17,6 +17,10 @@ action = Blueprint("action", __name__, url_prefix="/action")
 CORS(action)
 logger = Common.get_logger("action")
 
+### 定数定義
+# open/close を許可する最短呼出間隔 (秒)
+MIN_DOOR_EVENT_SPAN_SECONDS = 3
+
 
 @action.route("/open/<int:toilet_id>", methods=["POST"])
 def open(toilet_id: int) -> Response:
@@ -61,7 +65,7 @@ def open(toilet_id: int) -> Response:
                 .one() \
                 .is_closed
         except NoResultFound:
-            message = f"トイレ #{toilet_id} レコードが見つかりません。トイレマスター上のID設定とAPI呼び出し元のIDが合致することを確認して下さい。"
+            message = f"トイレ #{toilet_id} が見つかりません。トイレマスター上のID設定とAPI呼び出し元のIDが合致することを確認して下さい。"
             logger.error(f"[open] API Response. :success={False} "\
                          f":message={message}")
             return jsonify({
@@ -85,8 +89,20 @@ def open(toilet_id: int) -> Response:
                 .filter(Toilet.id == toilet_id) \
                 .one()
         except NoResultFound:
-            message = f"トイレ #{toilet_id} レコードが見つかりません。トイレマスター上のID設定とAPI呼び出し元のIDが合致することを確認して下さい。"
+            message = f"トイレ #{toilet_id} が見つかりません。トイレマスター上のID設定とAPI呼び出し元のIDが合致することを確認して下さい。"
             logger.error(f"[open] API Response. :success={False} "\
+                         f":message={message}")
+            return jsonify({
+                "success": False,
+                "message": message
+            })
+
+        # 前回更新からの経過時間を算出
+        timedelta = dt.now() - target_toilet.modified_time
+        if timedelta.total_seconds() < MIN_DOOR_EVENT_SPAN_SECONDS:
+            message = f"トイレ #{toilet_id} は {MIN_DOOR_EVENT_SPAN_SECONDS} 秒以内に更新されています。"\
+                      f"過剰反応防止のため、再度時間を置いてから呼び出して下さい。"
+            logger.warning(f"[open] API Response. :success={False} "\
                          f":message={message}")
             return jsonify({
                 "success": False,
@@ -157,7 +173,7 @@ def close(toilet_id: int) -> Response:
                 .one() \
                 .is_closed
         except NoResultFound:
-            message = f"トイレ #{toilet_id} レコードが見つかりません。トイレマスター上のID設定とAPI呼び出し元のIDが合致することを確認して下さい。"
+            message = f"トイレ #{toilet_id} が見つかりません。トイレマスター上のID設定とAPI呼び出し元のIDが合致することを確認して下さい。"
             logger.error(f"[close] API Response. :success={False} "\
                          f":message={message}")
             return jsonify({
@@ -181,8 +197,20 @@ def close(toilet_id: int) -> Response:
                 .filter(Toilet.id == toilet_id) \
                 .one()
         except NoResultFound:
-            message = f"トイレ #{toilet_id} レコードが見つかりません。トイレマスター上のID設定とAPI呼び出し元のIDが合致することを確認して下さい。"
+            message = f"トイレ #{toilet_id} が見つかりません。トイレマスター上のID設定とAPI呼び出し元のIDが合致することを確認して下さい。"
             logger.error(f"[close] API Response. :success={False} "\
+                         f":message={message}")
+            return jsonify({
+                "success": False,
+                "message": message
+            })
+
+        # 前回更新からの経過時間を算出
+        timedelta = dt.now() - target_toilet.modified_time
+        if timedelta.total_seconds() < MIN_DOOR_EVENT_SPAN_SECONDS:
+            message = f"トイレ #{toilet_id} は {MIN_DOOR_EVENT_SPAN_SECONDS} 秒以内に更新されています。"\
+                      f"過剰反応防止のため、再度時間を置いてから呼び出して下さい。"
+            logger.warning(f"[close] API Response. :success={False} "\
                          f":message={message}")
             return jsonify({
                 "success": False,
