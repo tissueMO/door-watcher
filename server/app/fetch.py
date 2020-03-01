@@ -118,7 +118,7 @@ def status():
                     result["status"][-1]["used"] += 1
 
             result["status"][-1]["rate100"] = \
-                int(result["status"][-1]["used"] / toilet.max * 100)
+                int(result["status"][-1]["used"] / toilet_group.max * 100)
 
     result["success"] = True
     result["message"] = ""
