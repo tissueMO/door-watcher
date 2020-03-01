@@ -8,4 +8,4 @@ Base = declarative_base()
 # Alembicにて自動的にマイグレーションを行う
 import sys
 sys.path.insert(0, "./model")
-import toilet, toilet_status, app_state
+import toilet, toilet_group, toilet_group_map, toilet_status, app_state

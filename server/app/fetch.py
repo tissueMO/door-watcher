@@ -28,30 +28,30 @@ def status():
           message: "エラーメッセージ",    // エラー発生時のみ。正常完了時は空文字
           status: [
             {
-              name: "4F 男性用トイレ",   // トイレの名称
+              name: "4F 男性用トイレ"    // トイレグループの名称
               valid: True or False,    // このトイレグループの状況を取得できたかどうか
               used: 1,                 // このトイレグループにおける現在の使用数
               max: 2,                  // このトイレグループの部屋数
               rate100: 0-100,          // このトイレグループの使用率% (同じ名前のトイレを合算した使用率%)
+              details: [               // このトイレグループの仔細
+                {
+                  name: "4F 男性用トイレ (洋式)",  // このトイレの名称
+                  used: True or False,   // このトイレが現在使用中であるかどうか
+                  valid: True or False,  // このトイレが現在トラブルが起きていない状態であるかどうか
+                },
+                ...
+              ],
             },
             ...
           ]
         }
     """
     from model.toilet import Toilet
+    from model.toilet_group import ToiletGroup
+    from model.toilet_group_map import ToiletGroupMap
     logger.info(f"[status] API Called.")
 
     with Common.create_session() as session:
-        # トイレマスターを取得: 名称でグループ化
-        toilets = session \
-            .query(
-                Toilet,
-                func.count().label("max")
-            ) \
-            .order_by(asc(Toilet.id)) \
-            .group_by(Toilet.name) \
-            .all()
-
         current_state = Common.get_system_mode(session)
         if current_state is None:
             message = "システムモードを取得できませんでした。サーバー上のエラーログを確認して下さい。"
@@ -69,29 +69,55 @@ def status():
                 "message": message
             })
 
+        # トイレグループマスターを取得: トイレへの紐付け情報も合わせて取得
+        toilet_groups = session \
+            .query(
+                ToiletGroup,
+                ToiletGroupMap,
+                func.count().label("max")
+            ) \
+            .outerjoin(ToiletGroupMap, ToiletGroup.id == ToiletGroupMap.toilet_group_id) \
+            .order_by(asc(ToiletGroup.id)) \
+            .group_by(ToiletGroup.id) \
+            .all()
+
+        # トイレマスターを取得: トイレグループへの紐付け情報も合わせて取得
+        toilets = session \
+            .query(
+                Toilet,
+                ToiletGroupMap,
+            ) \
+            .outerjoin(ToiletGroupMap, Toilet.id == ToiletGroupMap.toilet_id) \
+            .order_by(asc(Toilet.id)) \
+            .all()
+
         # 返却用の形式に変換
         result = {"status": []}
-        for i, toilet in enumerate(toilets):
+        for i, toilet_group in enumerate(toilet_groups):
             result["status"].append({
-                "name": toilet.Toilet.name,
-                "valid": toilet.Toilet.valid,
-                "max": toilet.max
+                "name": toilet_group.ToiletGroup.name,
+                "valid": toilet_group.ToiletGroup.valid,
+                "max": toilet_group.max
             })
-            if not toilet.Toilet.valid:
+
+            if not toilet_group.ToiletGroup.valid:
+                # このトイレグループ全体が無効になっている
                 result["status"][-1]["used"] = 0
-            else:
-                try:
-                    result["status"][-1]["used"] = session \
-                        .query(func.count().label("used")) \
-                        .filter(
-                            Toilet.name == toilet[0].name,
-                            Toilet.is_closed == True
-                        ) \
-                        .one() \
-                        .used
-                except NoResultFound:
-                    logger.warning(f"[status] API Error. トイレ [{toilet[0].name}] のレコード数の取得に失敗しました。トイレマスターの定義を確認して下さい。")
-                    result["status"][-1]["used"] = 0
+                result["status"][-1]["rate100"] = 0
+                continue
+
+            if toilet_group.max == 0:
+                # このトイレグループに紐づくトイレが存在しない
+                result["status"][-1]["rate100"] = 0
+                continue
+
+            # このグループ内の個々のトイレの使用状況を合算する
+            used_count = 0
+            for n, toilet in enumerate(toilets):
+                if toilet.ToiletGroupMap.toilet_group_id != toilet_group.ToiletGroup.id:
+                    continue
+                if toilet.Toilet.is_closed:
+                    used_count += 1
 
             result["status"][-1]["rate100"] = \
                 int(result["status"][-1]["used"] / toilet.max * 100)
@@ -127,8 +153,8 @@ def log(begin_date: str, end_date: str, begin_hours_per_day: int, end_hours_per_
                 ],
                 "datasets": [
                   {
-                    "label": "4F 男性用トイレ",
-                    "data": [0, 1, 1, ...]    // それぞれの単位時間内におけるオープン、クローズのイベント数合計値
+                    "label": "4F 男性用トイレ",  // トイレグループ単位
+                    "data": [0, 1, 1, ...]     // それぞれの単位時間内におけるオープン、クローズのイベント数合計値
                   }
                 ]
               }
@@ -138,6 +164,8 @@ def log(begin_date: str, end_date: str, begin_hours_per_day: int, end_hours_per_
         }
     """
     from model.toilet import Toilet
+    from model.toilet_group import ToiletGroup
+    from model.toilet_group_map import ToiletGroupMap
     from model.toilet_status import ToiletStatus
     logger.info(f"[log] API Called. "\
                 f":begin_date={begin_date} :end_date={end_date} "\
@@ -174,18 +202,24 @@ def log(begin_date: str, end_date: str, begin_hours_per_day: int, end_hours_per_
 
     with Common.create_session() as session:
         # トイレマスターを取得
-        # 非グループ化
         toilets = session \
-            .query(Toilet) \
+            .query( \
+                Toilet,
+                ToiletGroupMap
+            ) \
+            .outerjoin(ToiletGroupMap, Toilet.id == ToiletGroupMap.toilet_id) \
             .all()
-        # 名称でグループ化
+
+        # トイレグループマスターを取得: トイレへの紐付け情報も合わせて取得
         grouped_toilets = session \
             .query(
-                Toilet,
+                ToiletGroup,
+                ToiletGroupMap,
                 func.count().label("max")
             ) \
-            .group_by(Toilet.name) \
-            .order_by(asc(Toilet.id)) \
+            .outerjoin(ToiletGroupMap, ToiletGroup.id == ToiletGroupMap.toilet_group_id) \
+            .order_by(asc(ToiletGroup.id)) \
+            .group_by(ToiletGroup.id) \
             .all()
 
         current_state = Common.get_system_mode(session)
@@ -239,7 +273,7 @@ def log(begin_date: str, end_date: str, begin_hours_per_day: int, end_hours_per_
               "data": {
                 "labels": labels,
                 "datasets": [{
-                  "label": series_toilet.Toilet.name,
+                  "label": series_toilet.ToiletGroup.name,
                   "data": []
                 }]
               }
@@ -249,7 +283,7 @@ def log(begin_date: str, end_date: str, begin_hours_per_day: int, end_hours_per_
             target_toilets_id_list = [
                 x.id
                 for x in toilets
-                if x.name == series_toilet.Toilet.name
+                if x.ToiletGroupMap.toilet_group_id == series_toilet.ToiletGroupMap.toilet_group_id
             ]
 
             # この系列に属するトイレ入退室トランザクションテーブルで区間内に該当するレコードを抽出
