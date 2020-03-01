@@ -102,6 +102,7 @@ def status():
 
             result["status"][-1]["used"] = 0
             result["status"][-1]["rate100"] = 0
+            result["status"][-1]["details"] = []
 
             if not toilet_group.ToiletGroup.valid:
                 # このトイレグループ全体が無効になっている
@@ -110,12 +111,19 @@ def status():
                 # このトイレグループに紐づくトイレが存在しない
                 continue
 
-            # このグループ内の個々のトイレの使用状況を合算する
+            # このグループ内の個々のトイレの仔細をデータに加える
             for n, toilet in enumerate(toilets):
                 if toilet.ToiletGroupMap.toilet_group_id != toilet_group.ToiletGroup.id:
                     continue
                 if toilet.Toilet.is_closed:
                     result["status"][-1]["used"] += 1
+
+                # このグループ内の個々のトイレの仔細をデータに加える
+                result["status"][-1]["details"].append({
+                    "name": toilet.Toilet.name,
+                    "used": toilet.Toilet.is_closed,
+                    "valid": toilet.Toilet.valid
+                })
 
             result["status"][-1]["rate100"] = \
                 int(result["status"][-1]["used"] / toilet_group.max * 100)
