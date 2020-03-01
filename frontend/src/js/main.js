@@ -67,13 +67,19 @@ const fetchCurrentStatus = (isLoop) => {
           throw new Error(`${json.message}`);
         }
 
+        let counter = -1;
         for (const item of json.status) {
+          counter++;
+
           const $newItem = $('.js-status-item-template')
             .clone()
             .removeClass('js-status-item-template d-none');
 
           if (item.valid === true) {
             $newItem.find('.js-status-invalid').remove();
+
+            $newItem.find('.js-status-valid-collapse').attr('href', `#js-toilet-group-${counter}`);
+
             $newItem.find('.js-status-valid').addClass(
               item.name.includes('男') ? 'callout-primary' : 'callout-danger'
             );
@@ -95,8 +101,46 @@ const fetchCurrentStatus = (isLoop) => {
               $newItem.find('.js-status-available').text('');
               $newItem.find('.js-status-available-unit').text('無し');
             }
+
+            // トイレグループに属するトイレごとの仔細
+            if (0 < item.details.length) {
+              $newItem.find('.js-toilet-group-details').attr('id', `js-toilet-group-${counter}`);
+              const $details = $newItem.find('.js-toilet-group-details .js-toilet-group-details-container');
+              $details.empty();
+
+              let subCounter = -1;
+              for (const subItem of item.details) {
+                subCounter++;
+
+                // 状態テキストの決定
+                let subStatus = '';
+                if (subItem.valid) {
+                  subStatus = subItem.used ? '使用中' : '空き';
+                } else {
+                  subStatus = '使用不能';
+                }
+
+                // 仔細要素を追加
+                $details.append(
+                  $('<dl />')
+                    .append(
+                      $('<dt />').text(subItem.name)
+                    )
+                    .append(
+                      $('<dd />')
+                        .text(subStatus)
+                        .addClass('my-0')
+                    ).addClass(
+                      // 末尾に下余白を付けない
+                      (item.details.length <= subCounter + 1) ? 'mb-0' : ''
+                    )
+                );
+              }
+            } else {
+              $newItem.find('.js-toilet-group-details').remove();
+            }
           } else {
-            $newItem.find('.js-status-valid').remove();
+            $newItem.find('.js-status-valid-collapse').remove();
             $newItem.find('.js-status-invalid').addClass(
               item.name.includes('男') ? 'callout-primary' : 'callout-danger'
             );
