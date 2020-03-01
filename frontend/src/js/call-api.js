@@ -54,7 +54,12 @@ export const callAPI = ({ url, httpMethod = 'GET', success, fail, final, loading
     Common.viewLoadingSpinner(true);
   }
 
-  fetch(`${Settings.apiServerURLBase}${url}`, { method: httpMethod })
+  fetch(`${Settings.apiServerURLBase}${url}`,
+    {
+      method: httpMethod,
+      mode: 'no-cors'
+    }
+  )
     .then(response => {
       if (response.ok) {
         return response.json();
