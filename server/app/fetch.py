@@ -118,7 +118,6 @@ def status():
                 if toilet.Toilet.is_closed:
                     result["status"][-1]["used"] += 1
 
-                # このグループ内の個々のトイレの仔細をデータに加える
                 result["status"][-1]["details"].append({
                     "name": toilet.Toilet.name,
                     "used": toilet.Toilet.is_closed,
