@@ -100,19 +100,17 @@ def status():
                 "max": toilet_group.max
             })
 
+            result["status"][-1]["used"] = 0
+            result["status"][-1]["rate100"] = 0
+
             if not toilet_group.ToiletGroup.valid:
                 # このトイレグループ全体が無効になっている
-                result["status"][-1]["used"] = 0
-                result["status"][-1]["rate100"] = 0
                 continue
-
             if toilet_group.max == 0:
                 # このトイレグループに紐づくトイレが存在しない
-                result["status"][-1]["rate100"] = 0
                 continue
 
             # このグループ内の個々のトイレの使用状況を合算する
-            result["status"][-1]["used"] = 0
             for n, toilet in enumerate(toilets):
                 if toilet.ToiletGroupMap.toilet_group_id != toilet_group.ToiletGroup.id:
                     continue
