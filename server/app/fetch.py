@@ -286,7 +286,7 @@ def log(begin_date: str, end_date: str, begin_hours_per_day: int, end_hours_per_
 
             # この系列に属するトイレマスターのレコードを抽出
             target_toilets_id_list = [
-                x.id
+                x.Toilet.id
                 for x in toilets
                 if x.ToiletGroupMap.toilet_group_id == series_toilet.ToiletGroupMap.toilet_group_id
             ]
