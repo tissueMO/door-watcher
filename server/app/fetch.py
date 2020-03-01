@@ -112,12 +112,12 @@ def status():
                 continue
 
             # このグループ内の個々のトイレの使用状況を合算する
-            used_count = 0
+            result["status"][-1]["used"] = 0
             for n, toilet in enumerate(toilets):
                 if toilet.ToiletGroupMap.toilet_group_id != toilet_group.ToiletGroup.id:
                     continue
                 if toilet.Toilet.is_closed:
-                    used_count += 1
+                    result["status"][-1]["used"] += 1
 
             result["status"][-1]["rate100"] = \
                 int(result["status"][-1]["used"] / toilet.max * 100)
