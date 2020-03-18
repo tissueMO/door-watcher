@@ -43,22 +43,16 @@ def open(event, context):
         if current_state is None:
             message = "システムモードを取得できませんでした。サーバー上のエラーログを確認して下さい。"
             return {
-                "statusCode": 200,
-                "body": json.dumps({
-                    "success": False,
-                    "message": message
-                })
+                "success": False,
+                "message": message
             }
         if current_state == Common.SYSTEM_MODE_STOP:
             message = "システムモードが停止状態です。すべての入退室ログは記録されません。"
             logger.info(f"[open] API Response. :success={False} "\
                         f":message={message}")
             return {
-                "statusCode": 200,
-                "body": json.dumps({
-                    "success": False,
-                    "message": message
-                })
+                "success": False,
+                "message": message
             }
 
         # 現在の在室状況を取得
@@ -73,11 +67,8 @@ def open(event, context):
             logger.error(f"[open] API Response. :success={False} "\
                          f":message={message}")
             return {
-                "statusCode": 200,
-                "body": json.dumps({
-                    "success": False,
-                    "message": message
-                })
+                "success": False,
+                "message": message
             }
 
         if not is_closed:
@@ -85,11 +76,8 @@ def open(event, context):
             logger.info(f"[open] API Response. :success={False} "\
                         f":message={message}")
             return {
-                "statusCode": 200,
-                "body": json.dumps({
-                    "success": False,
-                    "message": message
-                })
+                "success": False,
+                "message": message
             }
 
         # 現在の在室状況を更新
@@ -103,11 +91,8 @@ def open(event, context):
             logger.error(f"[open] API Response. :success={False} "\
                          f":message={message}")
             return {
-                "statusCode": 200,
-                "body": json.dumps({
-                    "success": False,
-                    "message": message
-                })
+                "success": False,
+                "message": message
             }
 
         # 前回更新からの経過時間を算出
@@ -118,11 +103,8 @@ def open(event, context):
             logger.warning(f"[open] API Response. :success={False} "\
                          f":message={message}")
             return {
-                "statusCode": 200,
-                "body": json.dumps({
-                    "success": False,
-                    "message": message
-                })
+                "success": False,
+                "message": message
             }
 
         target_toilet.is_closed = False
@@ -142,11 +124,8 @@ def open(event, context):
     logger.info(f"[open] API Response. :success={True} "\
                 f":message={message}")
     return {
-        "statusCode": 200,
-        "body": json.dumps({
-            "success": True,
-            "message": message
-        })
+        "success": True,
+        "message": message
     }
 
 
@@ -173,22 +152,16 @@ def close(event, context):
         if current_state is None:
             message = "システムモードを取得できませんでした。サーバー上のエラーログを確認して下さい。"
             return {
-                "statusCode": 200,
-                "body": json.dumps({
-                    "success": False,
-                    "message": message
-                })
+                "success": False,
+                "message": message
             }
         if current_state == Common.SYSTEM_MODE_STOP:
             message = "システムモードが停止状態です。すべての入退室ログは記録されません。"
             logger.info(f"[close] API Response. :success={False} "\
                         f":message={message}")
             return {
-                "statusCode": 200,
-                "body": json.dumps({
-                    "success": False,
-                    "message": message
-                })
+                "success": False,
+                "message": message
             }
 
         # 現在の在室状況を取得
@@ -203,11 +176,8 @@ def close(event, context):
             logger.error(f"[close] API Response. :success={False} "\
                          f":message={message}")
             return {
-                "statusCode": 200,
-                "body": json.dumps({
-                    "success": False,
-                    "message": message
-                })
+                "success": False,
+                "message": message
             }
 
         if is_closed:
@@ -215,11 +185,8 @@ def close(event, context):
             logger.info(f"[close] API Response. :success={False} "\
                         f":message={message}")
             return {
-                "statusCode": 200,
-                "body": json.dumps({
-                    "success": False,
-                    "message": message
-                })
+                "success": False,
+                "message": message
             }
 
         # 現在の在室状況を更新
@@ -233,11 +200,8 @@ def close(event, context):
             logger.error(f"[close] API Response. :success={False} "\
                          f":message={message}")
             return {
-                "statusCode": 200,
-                "body": json.dumps({
-                    "success": False,
-                    "message": message
-                })
+                "success": False,
+                "message": message
             }
 
         # 前回更新からの経過時間を算出
@@ -248,11 +212,8 @@ def close(event, context):
             logger.warning(f"[close] API Response. :success={False} "\
                          f":message={message}")
             return {
-                "statusCode": 200,
-                "body": json.dumps({
-                    "success": False,
-                    "message": message
-                })
+                "success": False,
+                "message": message
             }
 
         target_toilet.is_closed = True
@@ -272,11 +233,8 @@ def close(event, context):
     logger.info(f"[close] API Response. :success={True} "\
                 f":message={message}")
     return {
-        "statusCode": 200,
-        "body": json.dumps({
-            "success": True,
-            "message": message
-        })
+        "success": True,
+        "message": message
     }
 
 
@@ -298,11 +256,8 @@ def emergency(event, context):
         if current_state is None:
             message = "システムモードを取得できませんでした。サーバー上のエラーログを確認して下さい。"
             return {
-                "statusCode": 200,
-                "body": json.dumps({
-                    "valid": None,
-                    "action": message
-                })
+                "valid": None,
+                "action": message
             }
 
         # システムモードを反転させて更新
@@ -323,11 +278,8 @@ def emergency(event, context):
             logger.error(f"[emergency] API Response. :valid={None} "
                          f":action={message}")
             return {
-                "statusCode": 200,
-                "body": json.dumps({
-                    "valid": None,
-                    "action": message
-                })
+                "valid": None,
+                "action": message
             }
 
         target_state.state = next_state
@@ -339,9 +291,6 @@ def emergency(event, context):
                 f":valid={next_state} :action={next_state_name}")
 
     return {
-        "statusCode": 200,
-        "body": json.dumps({
-            "valid": next_state,
-            "action": next_state_name
-        })
+        "valid": next_state,
+        "action": next_state_name
     }
