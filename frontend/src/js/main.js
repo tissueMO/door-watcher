@@ -207,8 +207,8 @@ const fetchLogs = () => {
   const stepHours = 1;
   beginDate.setDate(endDate.getDate() - 7);
   API.apiRules.fetchLogs.urlSuffix =
-    `/${dateformat(beginDate, format)}/${dateformat(endDate, format)}/` +
-    `${beginHoursPerDay}/${endHoursPerDay}/${stepHours}`;
+    `?begin_date=${dateformat(beginDate, format)}&end_date=${dateformat(endDate, format)}&` +
+    `begin_hours_per_day=${beginHoursPerDay}&end_hours_per_day=${endHoursPerDay}&step_hours=${stepHours}`;
 
   API.apiRules.fetchLogs.call({
     success: json => {
