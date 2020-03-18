@@ -54,11 +54,8 @@ def status(event, context):
         if current_state is None:
             message = "システムモードを取得できませんでした。サーバー上のエラーログを確認して下さい。"
             return {
-                "statusCode": 200,
-                "body": json.dumps({
-                    "success": False,
-                    "message": message
-                })
+                "success": False,
+                "message": message
             }
         if current_state == Common.SYSTEM_MODE_STOP:
             message = "現在システムモード「停止」のため、現況を取得できません。"\
@@ -66,11 +63,8 @@ def status(event, context):
             logger.info(f"[status] API Response. :success={False} "\
                         f":message={message}")
             return {
-                "statusCode": 200,
-                "body": json.dumps({
-                    "success": False,
-                    "message": message
-                })
+                "success": False,
+                "message": message
             }
 
         # トイレグループマスターを取得: トイレへの紐付け情報も合わせて取得
@@ -134,10 +128,7 @@ def status(event, context):
     result["success"] = True
     result["message"] = ""
     logger.info(f"[status] API Response. :success={True} :status_length={len(result['status'])}")
-    return {
-        "statusCode": 200,
-        "body": json.dumps(result)
-    }
+    return result
 
 
 def log(event, context):
@@ -243,22 +234,16 @@ def log(event, context):
         if current_state is None:
             message = "システムモードを取得できませんでした。サーバー上のエラーログを確認して下さい。"
             return {
-                "statusCode": 200,
-                "body": json.dumps({
-                    "success": False,
-                    "message": message
-                })
+                "success": False,
+                "message": message
             }
         if current_state == Common.SYSTEM_MODE_STOP:
             message = "システムモードが停止状態です。入退室ログは返却しません。"
             logger.info(f"[log] API Response. :success={False} "\
                         f":message={message}")
             return {
-                "statusCode": 200,
-                "body": json.dumps({
-                    "success": False,
-                    "message": message
-                })
+                "success": False,
+                "message": message
             }
 
         # 横軸ラベルを生成
@@ -349,7 +334,4 @@ def log(event, context):
         "graphs": graphs
     }
     logger.info(f"[log] API Response. :success={True} :graphs_length={len(graphs)}")
-    return {
-        "statusCode": 200,
-        "body": json.dumps(result)
-    }
+    return result
