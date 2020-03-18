@@ -16,9 +16,6 @@ class Toilet(Base):
 
     # 固有のID
     id = Column(Integer, primary_key=True, autoincrement=True)
-    ## NOTE: SQLite3では基本的に外部キーが非対応であることが多いため廃止
-    from toilet_status import ToiletStatus
-    # toilet_statuses = relationship("ToiletStatus")
 
     # トイレの名前
     name = Column(Text, nullable=False)

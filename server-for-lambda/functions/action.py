@@ -2,39 +2,37 @@
 #    任意の処理を実行するAPIを定義します。
 ###############################################################################
 import sys
-sys.path.insert(0, ".")
+import json
 from datetime import datetime as dt
 from sqlalchemy import create_engine
 from sqlalchemy.orm import sessionmaker
 from sqlalchemy.orm.exc import NoResultFound
 from sqlalchemy.pool import SingletonThreadPool
 
-# Flask サブモジュールとして必要なパッケージの取り込みと設定を行う
-from flask import Blueprint, request, jsonify, Response
-from flask_cors import CORS
-import app.common as Common
-action = Blueprint("action", __name__, url_prefix="/action")
-CORS(action)
-logger = Common.get_logger("action")
+sys.path.insert(0, ".")
+import functions.common as Common
 
 ### 定数定義
 # open/close を許可する最短呼出間隔 (秒)
 MIN_DOOR_EVENT_SPAN_SECONDS = 3
+# ロガーオブジェクト
+logger = Common.get_logger("action")
 
 
-@action.route("/open/<int:toilet_id>", methods=["POST"])
-def open(toilet_id: int) -> Response:
+def open(event, context):
     """トイレのドアが開いたことを記録します。
 
     Arguments:
         toilet_id {int} -- ターゲットトイレID
 
     Returns:
-        Response -- application/json = {
+        Dict -- application/json = {
             success: True or False,
             message: 補足メッセージ,
         }
     """
+    toilet_id = event["toilet_id"]
+
     from model.app_state import AppState
     from model.toilet import Toilet
     from model.toilet_status import ToiletStatus
@@ -44,18 +42,24 @@ def open(toilet_id: int) -> Response:
         current_state = Common.get_system_mode(session)
         if current_state is None:
             message = "システムモードを取得できませんでした。サーバー上のエラーログを確認して下さい。"
-            return jsonify({
-                "success": False,
-                "message": message
-            })
+            return {
+                "statusCode": 200,
+                "body": json.dumps({
+                    "success": False,
+                    "message": message
+                })
+            }
         if current_state == Common.SYSTEM_MODE_STOP:
             message = "システムモードが停止状態です。すべての入退室ログは記録されません。"
             logger.info(f"[open] API Response. :success={False} "\
                         f":message={message}")
-            return jsonify({
-                "success": False,
-                "message": message
-            })
+            return {
+                "statusCode": 200,
+                "body": json.dumps({
+                    "success": False,
+                    "message": message
+                })
+            }
 
         # 現在の在室状況を取得
         try:
@@ -68,19 +72,25 @@ def open(toilet_id: int) -> Response:
             message = f"トイレ #{toilet_id} が見つかりません。トイレマスター上のID設定とAPI呼び出し元のIDが合致することを確認して下さい。"
             logger.error(f"[open] API Response. :success={False} "\
                          f":message={message}")
-            return jsonify({
-                "success": False,
-                "message": message
-            })
+            return {
+                "statusCode": 200,
+                "body": json.dumps({
+                    "success": False,
+                    "message": message
+                })
+            }
 
         if not is_closed:
             message = f"トイレ #{toilet_id} は既に空室です。重複防止のため退室ログは記録されません。"
             logger.info(f"[open] API Response. :success={False} "\
                         f":message={message}")
-            return jsonify({
-                "success": False,
-                "message": message
-            })
+            return {
+                "statusCode": 200,
+                "body": json.dumps({
+                    "success": False,
+                    "message": message
+                })
+            }
 
         # 現在の在室状況を更新
         try:
@@ -92,10 +102,13 @@ def open(toilet_id: int) -> Response:
             message = f"トイレ #{toilet_id} が見つかりません。トイレマスター上のID設定とAPI呼び出し元のIDが合致することを確認して下さい。"
             logger.error(f"[open] API Response. :success={False} "\
                          f":message={message}")
-            return jsonify({
-                "success": False,
-                "message": message
-            })
+            return {
+                "statusCode": 200,
+                "body": json.dumps({
+                    "success": False,
+                    "message": message
+                })
+            }
 
         # 前回更新からの経過時間を算出
         timedelta = dt.now() - target_toilet.modified_time
@@ -104,10 +117,13 @@ def open(toilet_id: int) -> Response:
                       f"過剰反応防止のため、再度時間を置いてから呼び出して下さい。"
             logger.warning(f"[open] API Response. :success={False} "\
                          f":message={message}")
-            return jsonify({
-                "success": False,
-                "message": message
-            })
+            return {
+                "statusCode": 200,
+                "body": json.dumps({
+                    "success": False,
+                    "message": message
+                })
+            }
 
         target_toilet.is_closed = False
         target_toilet.modified_time = dt.now()
@@ -125,25 +141,29 @@ def open(toilet_id: int) -> Response:
     message = f"トイレ #{toilet_id} が空室になりました。"
     logger.info(f"[open] API Response. :success={True} "\
                 f":message={message}")
-    return jsonify({
-        "success": True,
-        "message": message
-    })
+    return {
+        "statusCode": 200,
+        "body": json.dumps({
+            "success": True,
+            "message": message
+        })
+    }
 
 
-@action.route("/close/<int:toilet_id>", methods=["POST"])
-def close(toilet_id: int) -> Response:
+def close(event, context):
     """トイレのドアが閉められたことを記録します。
 
     Arguments:
         toilet_id {int} -- ターゲットトイレID
 
     Returns:
-        Response -- application/json = {
+        Dict -- application/json = {
             success: True or False,
             message: 補足メッセージ,
         }
     """
+    toilet_id = event["toilet_id"]
+
     from model.toilet import Toilet
     from model.toilet_status import ToiletStatus
     logger.info(f"[close] API Called. :toilet_id={toilet_id}")
@@ -152,18 +172,24 @@ def close(toilet_id: int) -> Response:
         current_state = Common.get_system_mode(session)
         if current_state is None:
             message = "システムモードを取得できませんでした。サーバー上のエラーログを確認して下さい。"
-            return jsonify({
-                "success": False,
-                "message": message
-            })
+            return {
+                "statusCode": 200,
+                "body": json.dumps({
+                    "success": False,
+                    "message": message
+                })
+            }
         if current_state == Common.SYSTEM_MODE_STOP:
             message = "システムモードが停止状態です。すべての入退室ログは記録されません。"
             logger.info(f"[close] API Response. :success={False} "\
                         f":message={message}")
-            return jsonify({
-                "success": False,
-                "message": message
-            })
+            return {
+                "statusCode": 200,
+                "body": json.dumps({
+                    "success": False,
+                    "message": message
+                })
+            }
 
         # 現在の在室状況を取得
         try:
@@ -176,19 +202,25 @@ def close(toilet_id: int) -> Response:
             message = f"トイレ #{toilet_id} が見つかりません。トイレマスター上のID設定とAPI呼び出し元のIDが合致することを確認して下さい。"
             logger.error(f"[close] API Response. :success={False} "\
                          f":message={message}")
-            return jsonify({
-                "success": False,
-                "message": message
-            })
+            return {
+                "statusCode": 200,
+                "body": json.dumps({
+                    "success": False,
+                    "message": message
+                })
+            }
 
         if is_closed:
             message = f"トイレ #{toilet_id} は既に使用中です。重複防止のため入室ログは記録されません。"
             logger.info(f"[close] API Response. :success={False} "\
                         f":message={message}")
-            return jsonify({
-                "success": False,
-                "message": message
-            })
+            return {
+                "statusCode": 200,
+                "body": json.dumps({
+                    "success": False,
+                    "message": message
+                })
+            }
 
         # 現在の在室状況を更新
         try:
@@ -200,10 +232,13 @@ def close(toilet_id: int) -> Response:
             message = f"トイレ #{toilet_id} が見つかりません。トイレマスター上のID設定とAPI呼び出し元のIDが合致することを確認して下さい。"
             logger.error(f"[close] API Response. :success={False} "\
                          f":message={message}")
-            return jsonify({
-                "success": False,
-                "message": message
-            })
+            return {
+                "statusCode": 200,
+                "body": json.dumps({
+                    "success": False,
+                    "message": message
+                })
+            }
 
         # 前回更新からの経過時間を算出
         timedelta = dt.now() - target_toilet.modified_time
@@ -212,10 +247,13 @@ def close(toilet_id: int) -> Response:
                       f"過剰反応防止のため、再度時間を置いてから呼び出して下さい。"
             logger.warning(f"[close] API Response. :success={False} "\
                          f":message={message}")
-            return jsonify({
-                "success": False,
-                "message": message
-            })
+            return {
+                "statusCode": 200,
+                "body": json.dumps({
+                    "success": False,
+                    "message": message
+                })
+            }
 
         target_toilet.is_closed = True
         target_toilet.modified_time = dt.now()
@@ -233,18 +271,20 @@ def close(toilet_id: int) -> Response:
     message = f"トイレ #{toilet_id} が使用中になりました。"
     logger.info(f"[close] API Response. :success={True} "\
                 f":message={message}")
-    return jsonify({
-        "success": True,
-        "message": message
-    })
+    return {
+        "statusCode": 200,
+        "body": json.dumps({
+            "success": True,
+            "message": message
+        })
+    }
 
 
-@action.route("/emergency", methods=["POST"])
-def emergency() -> Response:
+def emergency(event, context):
     """システムモードの 停止 or 再開 状態を反転させます。
 
     Returns:
-        Response -- application/json = {
+        Dict -- application/json = {
             valid: 0 or 1,            // 反転後のステート番号
             action: "停止" or "再開",  // 反転後のステート名
         }
@@ -257,10 +297,13 @@ def emergency() -> Response:
         current_state = Common.get_system_mode(session)
         if current_state is None:
             message = "システムモードを取得できませんでした。サーバー上のエラーログを確認して下さい。"
-            return jsonify({
-                "valid": None,
-                "action": message
-            })
+            return {
+                "statusCode": 200,
+                "body": json.dumps({
+                    "valid": None,
+                    "action": message
+                })
+            }
 
         # システムモードを反転させて更新
         if current_state == Common.SYSTEM_MODE_STOP:
@@ -279,10 +322,13 @@ def emergency() -> Response:
             message = f"アプリケーション状態マスター id={1} のレコードが設定されていません。"
             logger.error(f"[emergency] API Response. :valid={None} "
                          f":action={message}")
-            return jsonify({
-                "valid": None,
-                "action": message
-            })
+            return {
+                "statusCode": 200,
+                "body": json.dumps({
+                    "valid": None,
+                    "action": message
+                })
+            }
 
         target_state.state = next_state
         target_state.modified_time = dt.now()
@@ -292,7 +338,10 @@ def emergency() -> Response:
     logger.info(f"[emergency] API Response. "\
                 f":valid={next_state} :action={next_state_name}")
 
-    return jsonify({
-        "valid": next_state,
-        "action": next_state_name
-    })
+    return {
+        "statusCode": 200,
+        "body": json.dumps({
+            "valid": next_state,
+            "action": next_state_name
+        })
+    }
