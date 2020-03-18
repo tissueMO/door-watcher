@@ -18,11 +18,16 @@ config.fileConfig("./logging.ini")
 ### 設定値ロード
 import configparser
 config = configparser.ConfigParser()
-config.read("./alembic.ini", "UTF-8")
+config.read("./settings.ini", "UTF-8")
 
-# DB接続文字列
-DB_PATH = config.get("alembic", "sqlalchemy.url")
-print(DB_PATH)
+# MySQL接続文字列
+DB_HOST = config.get("db", "host")
+DB_DATABASE = config.get("db", "database")
+DB_USER = config.get("db", "user")
+DB_PASSWORD = config.get("db", "password")
+DB_CHARSET = config.get("db", "charset")
+DB_PATH = f"mysql+mysqlconnector://{DB_USER}:{DB_PASSWORD}@{DB_HOST}/{DB_DATABASE}?charset={DB_CHARSET}"
+# print(DB_PATH)
 
 ### 定数定義
 # APIパラメーター日時フォーマット文字列
@@ -30,9 +35,9 @@ PARAM_DATETIME_FORMAT = "%Y%m%d"
 # システムモードを表すアプリケーション状態マスター上のID
 SYSTEM_MODE_APP_STATE_ID = 1
 # システムモード [停止] を表すステート値
-SYSTEM_MODE_STOP = 0
+SYSTEM_MODE_STOP = False
 # システムモード [再開] を表すステート値
-SYSTEM_MODE_RUNNING = 1
+SYSTEM_MODE_RUNNING = True
 
 
 class SessionFactory(object):
@@ -40,7 +45,7 @@ class SessionFactory(object):
     """
 
     def __init__(self, echo=False):
-        self.engine = create_engine(DB_PATH, echo=echo, poolclass=SingletonThreadPool)
+        self.engine = create_engine(DB_PATH, echo=echo, poolclass=SingletonThreadPool, pool_recycle=60)
 
     def create(self) -> Session:
         Session = sessionmaker(bind=self.engine)

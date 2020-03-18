@@ -2,23 +2,21 @@
 #    取得系の処理を実行するAPIを定義します。
 ###############################################################################
 import sys
-sys.path.insert(0, ".")
+import json
 import datetime
 from datetime import datetime as dt
 from sqlalchemy import func, asc, desc
 from sqlalchemy.orm.exc import NoResultFound
 
-# Flask サブモジュールとして必要なパッケージの取り込みと設定を行う
-from flask import Blueprint, request, jsonify, Response
-from flask_cors import CORS
-import app.common as Common
-fetch = Blueprint("fetch", __name__, url_prefix="/fetch")
-CORS(fetch)
+sys.path.insert(0, ".")
+import functions.common as Common
+
+### 定数定義
+# ロガーオブジェクト
 logger = Common.get_logger("fetch")
 
 
-@fetch.route("/status", methods=["GET"])
-def status():
+def status(event, context):
     """現在のトイレ在室状況を返します。
     なお、システム停止モードに移行している間はすべて success=False として返します。
 
@@ -55,19 +53,25 @@ def status():
         current_state = Common.get_system_mode(session)
         if current_state is None:
             message = "システムモードを取得できませんでした。サーバー上のエラーログを確認して下さい。"
-            return jsonify({
-                "success": False,
-                "message": message
-            })
+            return {
+                "statusCode": 200,
+                "body": json.dumps({
+                    "success": False,
+                    "message": message
+                })
+            }
         if current_state == Common.SYSTEM_MODE_STOP:
             message = "現在システムモード「停止」のため、現況を取得できません。"\
                       "現況を取得するためにはシステムモード「再開」に切り替えて下さい。"
             logger.info(f"[status] API Response. :success={False} "\
                         f":message={message}")
-            return jsonify({
-                "success": False,
-                "message": message
-            })
+            return {
+                "statusCode": 200,
+                "body": json.dumps({
+                    "success": False,
+                    "message": message
+                })
+            }
 
         # トイレグループマスターを取得: トイレへの紐付け情報も合わせて取得
         toilet_groups = session \
@@ -130,11 +134,13 @@ def status():
     result["success"] = True
     result["message"] = ""
     logger.info(f"[status] API Response. :success={True} :status_length={len(result['status'])}")
-    return jsonify(result)
+    return {
+        "statusCode": 200,
+        "body": json.dumps(result)
+    }
 
 
-@fetch.route("/log/<begin_date>/<end_date>/<int:begin_hours_per_day>/<int:end_hours_per_day>/<int:step_hours>", methods=["GET"])
-def log(begin_date: str, end_date: str, begin_hours_per_day: int, end_hours_per_day: int, step_hours: int):
+def log(event, context):
     """指定期間、および日当たりそれぞれの時間帯におけるすべてのトイレの使用回数を表す Chart.js グラフ用データを返します。
     このAPIでは、ドアが閉じられた回数をもとに集計します。
 
@@ -168,6 +174,12 @@ def log(begin_date: str, end_date: str, begin_hours_per_day: int, end_hours_per_
           ]
         }
     """
+    begin_date = event["begin_date"]
+    end_date = event["end_date"]
+    begin_hours_per_day = event["begin_hours_per_day"]
+    end_hours_per_day = event["end_hours_per_day"]
+    step_hours = event["step_hours"]
+
     from model.toilet import Toilet
     from model.toilet_group import ToiletGroup
     from model.toilet_group_map import ToiletGroupMap
@@ -230,18 +242,24 @@ def log(begin_date: str, end_date: str, begin_hours_per_day: int, end_hours_per_
         current_state = Common.get_system_mode(session)
         if current_state is None:
             message = "システムモードを取得できませんでした。サーバー上のエラーログを確認して下さい。"
-            return jsonify({
-                "success": False,
-                "message": message
-            })
+            return {
+                "statusCode": 200,
+                "body": json.dumps({
+                    "success": False,
+                    "message": message
+                })
+            }
         if current_state == Common.SYSTEM_MODE_STOP:
             message = "システムモードが停止状態です。入退室ログは返却しません。"
             logger.info(f"[log] API Response. :success={False} "\
                         f":message={message}")
-            return jsonify({
-                "success": False,
-                "message": message
-            })
+            return {
+                "statusCode": 200,
+                "body": json.dumps({
+                    "success": False,
+                    "message": message
+                })
+            }
 
         # 横軸ラベルを生成
         graphs = []
@@ -331,4 +349,7 @@ def log(begin_date: str, end_date: str, begin_hours_per_day: int, end_hours_per_
         "graphs": graphs
     }
     logger.info(f"[log] API Response. :success={True} :graphs_length={len(graphs)}")
-    return jsonify(result)
+    return {
+        "statusCode": 200,
+        "body": json.dumps(result)
+    }
