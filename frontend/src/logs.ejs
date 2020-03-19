@@ -11,7 +11,7 @@
   <main class="main d-flex flex-column">
     <nav aria-label="breadcrumb">
       <ol class="breadcrumb">
-        <li class="breadcrumb-item active">入退室ログ</li>
+        <li class="breadcrumb-item active">使用回数ログ</li>
       </ol>
     </nav>
     <div class="container-fluid d-flex flex-column js-logboard-container">
@@ -19,18 +19,18 @@
         <%- include('templates/_loading'); %>
         <div class="card col-12">
           <div class="card-body d-flex flex-column flex-fill">
-            <h1 class="ml-n2">入退室ログ</h1>
+            <h1 class="ml-n2">使用回数ログ</h1>
             <div class="row js-logboard-invalid" style="display: none;">
               <div class="col-12">
                 <div class="alert alert-danger my-3" role="alert">
                   <strong>ごめんなさい！</strong> &nbsp;
-                  ただいま入退室ログを取得できない状態となっています。。。
+                  ただいま使用回数ログを取得できない状態となっています。。。
                 </div>
               </div>
             </div>
             <div class="row js-logboard-valid flex-fill" style="display: none;">
               <div class="col-12 js-logboard-canvas-wrapper">
-                <canvas class="js-logboard-canvas js-logboard-canvas-template d-none my-3"><!-- グラフ描画領域 --></canvas>
+                <canvas class="js-logboard-canvas js-logboard-canvas-template d-none" height="150"><!-- グラフ描画領域 --></canvas>
               </div>
             </div><!-- row -->
           </div><!-- card-body -->

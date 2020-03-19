@@ -31,13 +31,13 @@ class APIRule {
  */
 export const apiRules = {
   // 現況取得
-  fetchCurrentStatus: new APIRule('/fetch/status', 'GET'),
+  fetchCurrentStatus: new APIRule('/', 'GET'),
 
   // ログ取得
-  fetchLogs: new APIRule('/fetch/log', 'GET'),
+  fetchLogs: new APIRule('/logs', 'GET'),
 
   // 緊急停止 or 再開
-  emergency: new APIRule('/action/emergency', 'POST')
+  emergency: new APIRule('/emergency', 'PATCH')
 };
 
 /**
@@ -54,7 +54,12 @@ export const callAPI = ({ url, httpMethod = 'GET', success, fail, final, loading
     Common.viewLoadingSpinner(true);
   }
 
-  fetch(`${Settings.apiServerURLBase}${url}`, { method: httpMethod })
+  fetch(`${Settings.apiServerURLBase}${url}`,
+    {
+      method: httpMethod,
+      mode: 'cors'
+    }
+  )
     .then(response => {
       if (response.ok) {
         return response.json();

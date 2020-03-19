@@ -16,6 +16,10 @@ const dateformat = require('dateformat');
  */
 let previousFetchedStatusCache;
 
+// Chart.js グローバル設定
+Chart.defaults.global.defaultFontFamily =
+  '"Noto Sans JP", "Hiragino Kaku Gothic ProN", "ヒラギノ角ゴ ProN W3", Meiryo, メイリオ, sans-serif';
+
 $(() => {
   if (0 < $('.js-dashboard').length) {
     // ダッシュボード用: 自動で現況取得
@@ -63,13 +67,19 @@ const fetchCurrentStatus = (isLoop) => {
           throw new Error(`${json.message}`);
         }
 
+        let counter = -1;
         for (const item of json.status) {
+          counter++;
+
           const $newItem = $('.js-status-item-template')
             .clone()
             .removeClass('js-status-item-template d-none');
 
           if (item.valid === true) {
             $newItem.find('.js-status-invalid').remove();
+
+            $newItem.find('.js-status-valid-collapse').attr('href', `#js-toilet-group-${counter}`);
+
             $newItem.find('.js-status-valid').addClass(
               item.name.includes('男') ? 'callout-primary' : 'callout-danger'
             );
@@ -91,8 +101,46 @@ const fetchCurrentStatus = (isLoop) => {
               $newItem.find('.js-status-available').text('');
               $newItem.find('.js-status-available-unit').text('無し');
             }
+
+            // トイレグループに属するトイレごとの仔細
+            if (0 < item.details.length) {
+              $newItem.find('.js-toilet-group-details').attr('id', `js-toilet-group-${counter}`);
+              const $details = $newItem.find('.js-toilet-group-details .js-toilet-group-details-container');
+              $details.empty();
+
+              let subCounter = -1;
+              for (const subItem of item.details) {
+                subCounter++;
+
+                // 状態テキストの決定
+                let subStatus = '';
+                if (subItem.valid) {
+                  subStatus = subItem.used ? '使用中' : '空き';
+                } else {
+                  subStatus = '使用不能';
+                }
+
+                // 仔細要素を追加
+                $details.append(
+                  $('<dl />')
+                    .append(
+                      $('<dt />').text(subItem.name)
+                    )
+                    .append(
+                      $('<dd />')
+                        .text(subStatus)
+                        .addClass('my-0')
+                    ).addClass(
+                      // 末尾に下余白を付けない
+                      (item.details.length <= subCounter + 1) ? 'mb-0' : ''
+                    )
+                );
+              }
+            } else {
+              $newItem.find('.js-toilet-group-details').remove();
+            }
           } else {
-            $newItem.find('.js-status-valid').remove();
+            $newItem.find('.js-status-valid-collapse').remove();
             $newItem.find('.js-status-invalid').addClass(
               item.name.includes('男') ? 'callout-primary' : 'callout-danger'
             );
@@ -153,10 +201,14 @@ const fetchLogs = () => {
   // APIパラメーターをセット
   const beginDate = new Date();
   const endDate = new Date(beginDate.getTime());
+  const beginHoursPerDay = 9;
+  const endHoursPerDay = 19;
   const format = 'yyyymmdd';
-  const step = 10;
-  beginDate.setDate(endDate.getDate() - 5);
-  API.apiRules.fetchLogs.urlSuffix = `/${dateformat(beginDate, format)}/${dateformat(endDate, format)}/${step}`;
+  const stepHours = 1;
+  beginDate.setDate(endDate.getDate() - 7);
+  API.apiRules.fetchLogs.urlSuffix =
+    `?begin_date=${dateformat(beginDate, format)}&end_date=${dateformat(endDate, format)}&` +
+    `begin_hours_per_day=${beginHoursPerDay}&end_hours_per_day=${endHoursPerDay}&step_hours=${stepHours}`;
 
   API.apiRules.fetchLogs.call({
     success: json => {
@@ -184,14 +236,51 @@ const fetchLogs = () => {
         const $newItem = $('.js-logboard-canvas-template')
           .clone()
           .removeClass('js-logboard-canvas-template d-none');
+        if (index === 0) {
+          $newItem.addClass('mb-5');
+        } else if (index + 1 <= graphs.length) {
+          $newItem.addClass('mt-5');
+        } else {
+          $newItem.addClass('my-5');
+        }
 
         item.data.datasets[0] = Object.assign(item.data.datasets[0], {
-          backgroundColor: `${colors[index]}11`,
-          borderColor: colors[index],
-          pointRadius: 3,
-          pointHitRadius: 6,
+          backgroundColor: `${colors[index]}66`,
+          hoverBackgroundColor: `${colors[index]}ff`,
+          borderColor: `${colors[index]}aa`,
+          borderWidth: 1,
           animation: true
         });
+        item.options = {
+          title: {
+            // グラフタイトル表示
+            display: true,
+            fontSize: 28,
+            text: item.data.datasets[0].label
+          },
+          legend: {
+            // 凡例非表示
+            display: false
+          },
+          scales: {
+            yAxes: [{
+              display: true,
+              scaleLabel: {
+                display: true,
+                fontSize: 18,
+                labelString: '使用回数'
+              },
+              ticks: {
+                beginAtZero: true,
+                userCallback: (label, index, labels) => {
+                  if (Math.floor(label) === label) {
+                    return label;
+                  }
+                }
+              }
+            }]
+          }
+        };
         new Chart($newItem, item);
 
         // 画面上に追加
