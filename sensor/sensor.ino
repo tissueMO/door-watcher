@@ -1,4 +1,5 @@
 #include <ESP8266WiFi.h>
+#include <WiFiClientSecure.h>
 extern "C" {
   #include "user_interface.h"
 }
@@ -14,7 +15,12 @@ const char* ssid = SSID;
 const char* password = PASSWORD;
 const char* host = HOSTNAME;
 const int port = PORT;
-WiFiClient client;
+
+#if PORT == 443
+  WiFiClientSecure client;
+#else
+  WiFiClient client;
+#endif
 
 // 機器固有設定
 // const char* TOILET_ID = "11";
@@ -79,24 +85,36 @@ void loop() {
   // リクエスト生成
   String url;
   if(door_state == 0) {
-    url += "/action/close/";
+    url += "/prod/door/close";
   } else {
-    url += "/action/open/";
+    url += "/prod/door/open";
   }
-  url += TOILET_ID;  // トイレのID
-  // url += system_adc_read();  // バッテリーの電圧1/10
   Serial.print("Requesting URL: ");
   Serial.print(host);
   Serial.println(url);
 
-  // POSTリクエスト実行
-  client.print(
-    String("POST ") + url + " HTTP/1.1\r\n" +
+  // PUT リクエスト実行
+  String body = String("{ \"toilet_id\": ") + TOILET_ID + " }";
+  String request = 
+    String("PUT ") + url + " HTTP/1.1\r\n" +
     "Host: " + host + "\r\n" +
-    "Connection: close\r\n\r\n"
-  );
+    "Connection: close\r\n" +
+    "Content-Type: application/json\r\n" +
+    "Content-Length: " + body.length() + "\r\n" +
+    "\r\n" +
+    body;
+  Serial.println(request);
+  client.print(request);
   delay(10);
   Serial.println("Closing connection.");
+
+  // レスポンス解析
+  Serial.print("Response: ");
+  while(client.available()) {
+    String line = client.readStringUntil('\r');
+    Serial.print(line);
+  }
+  Serial.println();
 
   // リードスイッチの状態に応じて異なる待機時間で待機
   if(door_state == CLOSE) {
