@@ -1,5 +1,5 @@
 ###############################################################################
-#    任意の処理を実行するAPIを定義します。
+#    ドアステート切替用APIを定義します。
 ###############################################################################
 import sys
 sys.path.insert(0, ".")
@@ -13,17 +13,17 @@ from sqlalchemy.pool import SingletonThreadPool
 from flask import Blueprint, request, jsonify, Response
 from flask_cors import CORS
 import app.common as Common
-action = Blueprint("action", __name__, url_prefix="/action")
-CORS(action)
-logger = Common.get_logger("action")
+sub_function = Blueprint("door", __name__, url_prefix="/door")
+CORS(sub_function)
+logger = Common.get_logger("door")
 
 ### 定数定義
 # open/close を許可する最短呼出間隔 (秒)
 MIN_DOOR_EVENT_SPAN_SECONDS = 3
 
 
-@action.route("/open/<int:toilet_id>", methods=["POST"])
-def open(toilet_id: int) -> Response:
+@sub_function.route("/open", methods=["PUT"])
+def open() -> Response:
     """トイレのドアが開いたことを記録します。
 
     Arguments:
@@ -35,6 +35,8 @@ def open(toilet_id: int) -> Response:
             message: 補足メッセージ,
         }
     """
+    toilet_id = request.json["toilet_id"]
+
     from model.app_state import AppState
     from model.toilet import Toilet
     from model.toilet_status import ToiletStatus
@@ -131,8 +133,8 @@ def open(toilet_id: int) -> Response:
     })
 
 
-@action.route("/close/<int:toilet_id>", methods=["POST"])
-def close(toilet_id: int) -> Response:
+@sub_function.route("/close", methods=["PUT"])
+def close() -> Response:
     """トイレのドアが閉められたことを記録します。
 
     Arguments:
@@ -144,6 +146,8 @@ def close(toilet_id: int) -> Response:
             message: 補足メッセージ,
         }
     """
+    toilet_id = request.json["toilet_id"]
+
     from model.toilet import Toilet
     from model.toilet_status import ToiletStatus
     logger.info(f"[close] API Called. :toilet_id={toilet_id}")
@@ -236,63 +240,4 @@ def close(toilet_id: int) -> Response:
     return jsonify({
         "success": True,
         "message": message
-    })
-
-
-@action.route("/emergency", methods=["POST"])
-def emergency() -> Response:
-    """システムモードの 停止 or 再開 状態を反転させます。
-
-    Returns:
-        Response -- application/json = {
-            valid: 0 or 1,            // 反転後のステート番号
-            action: "停止" or "再開",  // 反転後のステート名
-        }
-    """
-    from model.app_state import AppState
-    logger.info(f"[emergency] API Called.")
-
-    with Common.create_session() as session:
-        # 現在のシステムモードを取得
-        current_state = Common.get_system_mode(session)
-        if current_state is None:
-            message = "システムモードを取得できませんでした。サーバー上のエラーログを確認して下さい。"
-            return jsonify({
-                "valid": None,
-                "action": message
-            })
-
-        # システムモードを反転させて更新
-        if current_state == Common.SYSTEM_MODE_STOP:
-            next_state = Common.SYSTEM_MODE_RUNNING
-            next_state_name = "再開"
-        else:
-            next_state = Common.SYSTEM_MODE_STOP
-            next_state_name = "停止"
-
-        try:
-            target_state = session \
-                .query(AppState) \
-                .filter(AppState.id == Common.SYSTEM_MODE_APP_STATE_ID) \
-                .one()
-        except NoResultFound:
-            message = f"アプリケーション状態マスター id={1} のレコードが設定されていません。"
-            logger.error(f"[emergency] API Response. :valid={None} "
-                         f":action={message}")
-            return jsonify({
-                "valid": None,
-                "action": message
-            })
-
-        target_state.state = next_state
-        target_state.modified_time = dt.now()
-
-        session.commit()
-
-    logger.info(f"[emergency] API Response. "\
-                f":valid={next_state} :action={next_state_name}")
-
-    return jsonify({
-        "valid": next_state,
-        "action": next_state_name
     })

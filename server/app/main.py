@@ -11,10 +11,13 @@ import sys
 sys.path.insert(0, ".")
 
 # 各種サブモジュールをロード
-from app.action import action
-from app.fetch import fetch
-app.register_blueprint(action)
-app.register_blueprint(fetch)
+from app import api
+from app.door import api as door
+from app.emergency import api as emergency
+from app.logs import api as logs
+app.register_blueprint(door.sub_function)
+app.register_blueprint(emergency.sub_function)
+app.register_blueprint(logs.sub_function)
 
 
 @app.route("/health", methods=["GET"])
