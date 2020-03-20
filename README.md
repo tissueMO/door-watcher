@@ -12,7 +12,14 @@
 
 ### アーキテクチャー全体図
 
+#### Docker動作版
+
 ![Architecture](https://user-images.githubusercontent.com/20965271/72682494-dc507f80-3b10-11ea-9513-dbce75efe9bf.png)
+
+#### AWS動作版
+
+![architecture-aws](https://user-images.githubusercontent.com/20965271/77187077-3ffa2780-6b17-11ea-9fb8-01c0de1626e0.png)
+
 
 #### センサー部 [sensor]
 
@@ -31,8 +38,18 @@ Arduino IDE を用いてソースコードをコンパイルして書き込み�
 
 #### サーバー部 [server]
 
+##### Docker動作版
+
 Apache2 + mod_wsgi を利用して Python の Flask で動かします。  
 ただし `/server/Dockerfile` を用いてイメージをビルドし、Docker環境上で動かします。  
+データの永続化には SQLite3 を使用します。  
+
+
+##### AWS動作版
+
+AWS Lambda にデプロイして動かします。  
+基本的には API Gateway と併用することを想定していますが、Lambda単体でも動作します。  
+データの永続化には RDS (MySQL) を使用します。
 
 
 #### フロント部 [front]
@@ -69,6 +86,8 @@ Webサーバーは特に想定していませんが、コンテンツのビル�
 
 #### サーバー部 [server]
 
+##### Docker動作版
+
 いずれもDockerfileにて定義があるため、ビルドしたDockerイメージを用いるだけであれば手動でインストールする必要はありません。  
 
 - Docker
@@ -80,6 +99,14 @@ Webサーバーは特に想定していませんが、コンテンツのビル�
         - その他については `/server/requirements.txt` を参照
 - Apache2
     - mod_wsgi 4.5
+
+##### AWS動作版
+
+- Python 3.8
+    - Python パッケージ
+        - SQLAlchemy
+        - mysql-connector
+        - その他については `/server-for-lambda/requirements.txt` を参照
 
 
 #### フロント部 [front]
@@ -119,11 +146,34 @@ Webサーバーは特に想定していませんが、コンテンツのビル�
 
 ### サーバー部 [server]
 
+#### Docker動作版
+
 - コマンドライン上で `/server` に移動した状態で以下のコマンドでDockerイメージのビルドを実行します。
     - `$ docker build -t {TAG_NAME} .`
 - ビルドに失敗した場合、適宜Dockerfileを修正して下さい。
 - ビルドが終わったら以下のコマンドでコンテナーを起動します。
     - `$ docker run -p 80:80 -e TZ=Asia/Tokyo --rm -d {TAG_NAME}`
+
+
+#### AWS動作版
+
+- 任意のディレクトリー上で venv 仮想環境を作成します。
+    - `$ python3 -m venv .`
+- venv の環境に入ります。
+    - `$ source ./bin/activate`
+- 任意の空ディレクトリーを作成し、その中に移動します。
+    - `$ mkdir src`
+    - `$ cd src`
+- `/server-for-lambda` 以下のデータをコピーします。
+- 依存パッケージを同ディレクトリー内にインストールします。
+    - `$ pip install -r requirements.txt -t .`
+- ディレクトリー全体をzipで固めます。
+    - `$ cd ../`
+    - `$ zip -r door-watcher.zip ./src/*`
+- 作成したzipファイルを AWS Lambda にアップロードします。
+- Lambdaコンソール上でそれぞれの関数を紐づけ、デプロイします。
+    - いずれの関数も同一のzipファイルを用いて構いません。
+    - 呼び出す関数はそれぞれ該当するファイル名、所定の関数名を指定します。
 
 
 ### フロント部 [front]
@@ -134,8 +184,8 @@ Webサーバーは特に想定していませんが、コンテンツのビル�
     - `export const apiServerURLBase = 'http://HOSTNAME';`
 - 以下のコマンドで公開ファイル群をビルドします。
     - `$ yarn run webpack`
-        - 開発モードは `/frontend/webpack.config.js` のENV を `"development"` とします。
-        - 本番モードは `/frontend/webpack.config.js` のENV を `"production"` とします。
+        - 本番モードでビルドするには `$ yarn run webpack --production` とします。
+        - 本番モードでの出力には、mapファイルが含まれず、CSSおよびJavaScriptファイルがMinifyされたものになります。
 - `/frontend/public/` 以下に作られたファイルを、任意のWebサーバーの公開ディレクトリーに配置します。
     - アーキテクチャー全体図では Web Server に相当します。
 
@@ -159,6 +209,8 @@ Webサーバーは特に想定していませんが、コンテンツのビル�
 
 (Setup/サーバー部 [server] での工程が完了している前提とします)
 
+#### Docker動作版
+
 - サーバーに疎通できるクライアント環境のブラウザーから以下のURLにアクセスします。
     - `http://{DOMAIN_NAME}/health`
         - これはヘルスチェック用のAPIです。
@@ -173,6 +225,12 @@ Webサーバーは特に想定していませんが、コンテンツのビル�
     - `# tail -f /var/log/apache2/error.log | perl -nle 's/\?\\([a-f\d]{3})/chr($1)/ieg;s/\\x([a-f\d]{2})/pack("C", hex($1))/ieg;print $_;'`
         - サーバーアプリケーション内でエラー発生した際のスタックトレースやアプリケーションが吐き出したログを確認できます。
         - パイプ(|)で繋いだ後ろのコマンドは、日本語を含むマルチバイト文字が文字化けしてしまう問題を解消するためのものです。
+
+
+#### AWS動作版
+
+- AWS Lambda のエンドポイントURLにアクセスします。
+- ログについては、Cloud Watch から確認できます。
 
 
 ### フロント部 [front]
