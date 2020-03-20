@@ -18,7 +18,7 @@
 
 #### AWS動作版
 
-![architecture-aws](https://user-images.githubusercontent.com/20965271/77187077-3ffa2780-6b17-11ea-9fb8-01c0de1626e0.png)
+![Untitled Diagram](https://user-images.githubusercontent.com/20965271/77197005-bd2d9880-6b27-11ea-86ff-ed8d99361191.png)
 
 
 #### センサー部 [sensor]
