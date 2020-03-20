@@ -34,10 +34,10 @@ export const apiRules = {
   fetchCurrentStatus: new APIRule('/', 'GET'),
 
   // ログ取得
-  fetchLogs: new APIRule('/logs', 'GET'),
+  fetchLogs: new APIRule('/logs/', 'GET'),
 
   // 緊急停止 or 再開
-  emergency: new APIRule('/emergency', 'PATCH')
+  emergency: new APIRule('/emergency/', 'PATCH')
 };
 
 /**
