@@ -12,13 +12,13 @@ from sqlalchemy.orm.exc import NoResultFound
 from flask import Blueprint, request, jsonify, Response
 from flask_cors import CORS
 import app.common as Common
-logs = Blueprint("logs", __name__, url_prefix="/logs")
-CORS(logs)
+sub_function = Blueprint("logs", __name__, url_prefix="/logs")
+CORS(sub_function)
 logger = Common.get_logger("logs")
 
 
-@logs.route("/", methods=["GET"])
-def log(begin_date: str, end_date: str, begin_hours_per_day: int, end_hours_per_day: int, step_hours: int):
+@sub_function.route("/", methods=["GET"])
+def log():
     """指定期間、および日当たりそれぞれの時間帯におけるすべてのトイレの使用回数を表す Chart.js グラフ用データを返します。
     このAPIでは、ドアが閉じられた回数をもとに集計します。
 
@@ -52,11 +52,13 @@ def log(begin_date: str, end_date: str, begin_hours_per_day: int, end_hours_per_
           ]
         }
     """
-    begin_date = request.json["begin_date"]
-    end_date = request.json["end_date"]
-    begin_hours_per_day = request.json["begin_hours_per_day"]
-    end_hours_per_day = request.json["end_hours_per_day"]
-    step_hours = request.json["step_hours"]
+    end_date_default = dt.now()
+    begin_date_default = end_date_default - datetime.timedelta(days=10)
+    begin_date = request.args.get("begin_date", dt.strftime(begin_date_default, Common.PARAM_DATETIME_FORMAT))
+    end_date = request.args.get("end_date", dt.strftime(end_date_default, Common.PARAM_DATETIME_FORMAT))
+    begin_hours_per_day = request.args.get("begin_hours_per_day", 10, type=int)
+    end_hours_per_day = request.args.get("end_hours_per_day", 19, type=int)
+    step_hours = request.args.get("step_hours", 2, type=int)
 
     from model.toilet import Toilet
     from model.toilet_group import ToiletGroup
