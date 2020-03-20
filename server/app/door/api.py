@@ -13,8 +13,8 @@ from sqlalchemy.pool import SingletonThreadPool
 from flask import Blueprint, request, jsonify, Response
 from flask_cors import CORS
 import app.common as Common
-door = Blueprint("door", __name__, url_prefix="/door")
-CORS(door)
+sub_function = Blueprint("door", __name__, url_prefix="/door")
+CORS(sub_function)
 logger = Common.get_logger("door")
 
 ### 定数定義
@@ -22,7 +22,7 @@ logger = Common.get_logger("door")
 MIN_DOOR_EVENT_SPAN_SECONDS = 3
 
 
-@door.route("/open", methods=["PUT"])
+@sub_function.route("/open", methods=["PUT"])
 def open() -> Response:
     """トイレのドアが開いたことを記録します。
 
@@ -133,7 +133,7 @@ def open() -> Response:
     })
 
 
-@door.route("/close", methods=["PUT"])
+@sub_function.route("/close", methods=["PUT"])
 def close() -> Response:
     """トイレのドアが閉められたことを記録します。
 

@@ -13,12 +13,12 @@ from sqlalchemy.pool import SingletonThreadPool
 from flask import Blueprint, request, jsonify, Response
 from flask_cors import CORS
 import app.common as Common
-emergency = Blueprint("emergency", __name__, url_prefix="/emergency")
-CORS(emergency)
+sub_function = Blueprint("emergency", __name__, url_prefix="/emergency")
+CORS(sub_function)
 logger = Common.get_logger("emergency")
 
 
-@emergency.route("/", methods=["PATCH"])
+@sub_function.route("/", methods=["PATCH"])
 def emergency() -> Response:
     """システムモードの 停止 or 再開 状態を反転させます。
 
