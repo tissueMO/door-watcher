@@ -9,6 +9,7 @@ const TerserJSPlugin = require("terser-webpack-plugin");
 const CopyWebpackPlugin = require("copy-webpack-plugin");
 const globule = require("globule");
 const args = require("args-parser")(process.argv);
+const { CleanWebpackPlugin } = require('clean-webpack-plugin');
 
 // 環境名
 const IS_DEVELOP = !("production" in args);
@@ -32,8 +33,6 @@ const getEntriesList = (targetTypes) => {
 }
 
 const app = {
-  mode: IS_DEVELOP ? "development" : "production",
-  devtool: IS_DEVELOP ? "source-map" : false,
   entry: Object.assign(
     {
       app: [
@@ -46,12 +45,6 @@ const app = {
     path: path.resolve(__dirname, DEST_PATH),
     filename: "js/[name].min.js",
     publicPath: "/",
-  },
-  devServer: {
-    contentBase: DEST_PATH,
-    watchContentBase: true,
-    port: 3000,
-    open: true,
   },
   module: {
     rules: [
@@ -79,9 +72,6 @@ const app = {
           loader: MiniCssExtractPlugin.loader,
         }, {
           loader: "css-loader",
-          options: {
-            sourceMap: IS_DEVELOP ? USE_SOURCE_MAP : false,
-          },
         }, {
           loader: "postcss-loader",
           options: {
@@ -91,9 +81,6 @@ const app = {
           },
         }, {
           loader: "sass-loader",
-          options: {
-            sourceMap: IS_DEVELOP ? USE_SOURCE_MAP : false,
-          },
         }],
       },
       {
@@ -112,6 +99,7 @@ const app = {
     extensions: [".js"],
   },
   plugins: [
+    new CleanWebpackPlugin(),
     new MiniCssExtractPlugin({
       filename: "css/style.min.css",
     }),
