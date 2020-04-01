@@ -34,6 +34,33 @@ const logStepHours = 1;
 const format = 'yyyymmdd';
 
 /**
+ * グラフ縦軸の軸ラベルパターン
+ */
+const yAxesTitle = {
+  使用頻度: '入室回数',
+  占有率: '占有率 (%)'
+};
+
+/**
+ * グラフ縦軸の目盛線の軸ラベルパターン
+ */
+const yAxesTickOptionPatterns = {
+  使用頻度: {
+    beginAtZero: true,
+    userCallback: (label, index, labels) => {
+      if (Math.floor(label) === label) {
+        return label;
+      }
+    }
+  },
+  占有率: {
+    beginAtZero: true,
+    max: 1,
+    userCallback: (label, index, labels) => label * 100
+  }
+};
+
+/**
  * 前回取得した現況情報 (キャッシュ用)
  */
 let previousFetchedStatusCache;
@@ -255,16 +282,9 @@ export const fetchLogs = () => {
               scaleLabel: {
                 display: true,
                 fontSize: 18,
-                labelString: '使用回数'
+                labelString: getYAxesTitle(item.data.datasets[0].label)
               },
-              ticks: {
-                beginAtZero: true,
-                userCallback: (label, index, labels) => {
-                  if (Math.floor(label) === label) {
-                    return label;
-                  }
-                }
-              }
+              ticks: getYAxesTickOptions(item.data.datasets[0].label)
             }]
           }
         };
@@ -280,4 +300,34 @@ export const fetchLogs = () => {
       $('.js-logboard-container').removeClass('flex-fill');
     }
   });
+};
+
+/**
+ * グラフタイトルから対応するY軸ラベルを返します。
+ *
+ * @param {string} label グラフタイトル
+ * @returns {string} Y軸ラベル
+ */
+const getYAxesTitle = label => {
+  for (const key in yAxesTitle) {
+    if (label.includes(key)) {
+      return yAxesTitle[key];
+    }
+  }
+  return '';
+};
+
+/**
+ * グラフタイトルから対応する目盛オプションを返します。
+ *
+ * @param {string} label グラフタイトル
+ * @returns {Object} 目盛オプション
+ */
+const getYAxesTickOptions = label => {
+  for (const key in yAxesTickOptionPatterns) {
+    if (label.includes(key)) {
+      return yAxesTickOptionPatterns[key];
+    }
+  }
+  return {};
 };
