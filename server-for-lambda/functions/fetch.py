@@ -246,6 +246,7 @@ def log(event, context):
                 "message": message
             }
 
+        ##### 使用頻度 #####
         # 横軸ラベルを生成
         graphs = []
         labels = []
@@ -281,7 +282,7 @@ def log(event, context):
               "data": {
                 "labels": labels,
                 "datasets": [{
-                  "label": series_toilet.ToiletGroup.name,
+                  "label": f"{series_toilet.ToiletGroup.name} - {step_hours}時間あたりの使用頻度",
                   "data": []
                 }]
               }
@@ -306,7 +307,7 @@ def log(event, context):
                 .all()
 
             # 先頭のサンプリング時間から順にドアクローズイベントの件数を抽出していく
-            data = []
+            data_frequency = []
             start_index = 0
             for one_of_begin_and_end_pairs in target_begin_and_end_pairs:
                 sampling_count = 0
@@ -321,10 +322,104 @@ def log(event, context):
                         start_index = n
                         break
 
-                data.append(sampling_count)
+                data_frequency.append(sampling_count)
 
             # 出来上がったグラフデータをグラフリストに格納
-            graph["data"]["datasets"][0]["data"] = data
+            graph["data"]["datasets"][0]["data"] = data_frequency
+            graphs.append(graph)
+
+        ##### 占有率 (抽出開始時刻よりも前から継続して入室中だったデータはカウント対象に含まれないので注意) #####
+        # 系列ごとにグラフデータを分けて作成
+        for i, series_toilet in enumerate(grouped_toilets):
+            graph = {
+              "type": "bar",
+              "data": {
+                "labels": labels,
+                "datasets": [{
+                  "label": f"{series_toilet.ToiletGroup.name} - {step_hours}時間あたりの占有率",
+                  "data": []
+                }]
+              }
+            }
+
+            # この系列に属するトイレマスターのレコードを抽出
+            target_toilets_id_list = [
+                x.Toilet.id
+                for x in toilets
+                if x.ToiletGroupMap.toilet_group_id == series_toilet.ToiletGroupMap.toilet_group_id
+            ]
+
+            # この系列に属するトイレ入退室トランザクションテーブルで区間内に該当するレコードを抽出
+            target_statuses_all = session \
+                .query(ToiletStatus) \
+                .filter(
+                    begin_datetime <= ToiletStatus.created_time,
+                    ToiletStatus.created_time < end_datetime,
+                    ToiletStatus.toilet_id.in_(target_toilets_id_list)
+                ) \
+                .order_by(asc(ToiletStatus.created_time)) \
+                .all()
+
+            data_occupancy = []
+            start_index = 0
+
+            # 個室1室あたりが最大占有率になる時間秒数
+            max_occupancy_time = step_hours * 60 * 60
+
+            # トイレIDごとに直前に入室した時刻を記憶できるようにしておく
+            temp_last_start_times = {
+                x: None
+                for x in target_toilets_id_list
+            }
+
+            # 先頭のサンプリング時間から順に抽出していく
+            for m, one_of_begin_and_end_pairs in enumerate(target_begin_and_end_pairs):
+                # 抽出対象区間をまたいで占有している場合は現在の抽出開始時刻に合わせておく
+                temp_last_start_times = {
+                    x: None if temp_last_start_times[x] is None else one_of_begin_and_end_pairs["begin"]
+                    for x in target_toilets_id_list
+                }
+
+                # 抽出対象区間内における個室ごとの占有時間累計秒数
+                occupied_times = {
+                    x: 0
+                    for x in target_toilets_id_list
+                }
+
+                for n, target_status in enumerate(target_statuses_all[start_index:]):
+                    if one_of_begin_and_end_pairs["begin"] <= target_status.created_time and \
+                            target_status.created_time < one_of_begin_and_end_pairs["end"]:
+                        if target_status.is_closed:
+                            # 対象区間内の入室記録にヒットしたら占有時間の計算を開始する
+                            temp_last_start_times[target_status.toilet_id] = target_status.created_time
+                        else:
+                            # 対象区間内の退室記録にヒットしたら占有時間の計算を完了する
+                            time_delta = target_status.created_time - temp_last_start_times[target_status.toilet_id]
+                            occupied_times[target_status.toilet_id] += time_delta.total_seconds()
+                            temp_last_start_times[target_status.toilet_id] = None
+                    elif one_of_begin_and_end_pairs["end"] <= target_status.created_time:
+                        # 抽出対象区間から抜けたらその時間の集計を完了する
+                        start_index = n
+
+                        # 抽出対象区間の終端まで入室中だったものはその終端で区切る
+                        for id, last_start_time in temp_last_start_times.items():
+                            if last_start_time is not None:
+                                time_delta = one_of_begin_and_end_pairs["end"] - temp_last_start_times[target_status.toilet_id]
+                                occupied_times[target_status.toilet_id] += time_delta.total_seconds()
+                                # NOTE: 次の抽出対象区間に回った後にその抽出開始時刻で占有時間の計算を開始する
+
+                        break
+
+                # トイレグループ内の個室ごとの占有時間を理論上のMAX占有時間で割った割合について、トイレグループ内の個室全体で相加平均したものをこのトイレグループの占有率とする
+                data_occupancy.append(
+                  sum([
+                    (occupied_time / max_occupancy_time)
+                    for x, occupied_time in occupied_times.items()
+                  ]) / len(occupied_times)
+                )
+
+            # 出来上がったグラフデータをグラフリストに格納
+            graph["data"]["datasets"][0]["data"] = data_occupancy
             graphs.append(graph)
 
     # API側はデータを返すだけで、見た目やオプションはクライアント側で付加してもらうポリシーとする
