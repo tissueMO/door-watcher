@@ -15,15 +15,13 @@
   height: $navbar-height - 2 * 2;
 }
 
-.callout-invalid {
-  .callout-bg-icon-wrapper {
-    top: 0;
-    bottom: 0;
-    right: 0;
+.callout-bg-icon-wrapper {
+  top: 0;
+  bottom: 0;
+  right: 0;
 
-    .callout-bg-icon {
-      right: 1rem;
-      font-size: 5rem;
-    }
+  .callout-bg-icon {
+    right: 1rem;
+    font-size: 5rem;
   }
 }
