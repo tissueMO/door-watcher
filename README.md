@@ -183,8 +183,8 @@ Webサーバーは特に想定していませんが、コンテンツのビル�
 - `/frontend/src/js/settings.js` を作成し、環境依存する値 (APIサーバーのURL、末尾に / を含まないもの) を定義します。
     - `export const apiServerURLBase = 'http://HOSTNAME';`
 - 以下のコマンドで公開ファイル群をビルドします。
-    - `$ yarn run webpack`
-        - 本番モードでビルドするには `$ yarn run webpack --production` とします。
+    - `$ yarn run dev`
+        - 本番モードでビルドするには `$ yarn run build` とします。
         - 本番モードでの出力には、mapファイルが含まれず、CSSおよびJavaScriptファイルがMinifyされたものになります。
 - `/frontend/public/` 以下に作られたファイルを、任意のWebサーバーの公開ディレクトリーに配置します。
     - アーキテクチャー全体図では Web Server に相当します。
