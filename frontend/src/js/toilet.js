@@ -9,6 +9,31 @@ const dateformat = require('dateformat');
 const API = require('./call-api-toilet.js');
 
 /**
+ * ログの取得期間日数
+ */
+const logSpanDays = 30;
+
+/**
+ * ログの日当たりの取得開始時刻 (時)
+ */
+const logBeginHoursPerDay = 9;
+
+/**
+ * ログの日当たりの取得終端時刻 (時)
+ */
+const logEndHoursPerDay = 19;
+
+/**
+ * ログの取得間隔 (時)
+ */
+const logStepHours = 1;
+
+/**
+ * ログ取得APIの日時フォーマット
+ */
+const format = 'yyyymmdd';
+
+/**
  * 前回取得した現況情報 (キャッシュ用)
  */
 let previousFetchedStatusCache;
@@ -166,14 +191,11 @@ export const fetchLogs = () => {
   // APIパラメーターをセット
   const beginDate = new Date();
   const endDate = new Date(beginDate.getTime());
-  const beginHoursPerDay = 9;
-  const endHoursPerDay = 19;
-  const format = 'yyyymmdd';
-  const stepHours = 1;
-  beginDate.setDate(endDate.getDate() - 7);
+  beginDate.setDate(endDate.getDate() - logSpanDays);
   API.apiRules.fetchLogs.urlSuffix =
     `?begin_date=${dateformat(beginDate, format)}&end_date=${dateformat(endDate, format)}&` +
-    `begin_hours_per_day=${beginHoursPerDay}&end_hours_per_day=${endHoursPerDay}&step_hours=${stepHours}`;
+    `begin_hours_per_day=${logBeginHoursPerDay}&end_hours_per_day=${logEndHoursPerDay}&` +
+    `step_hours=${logStepHours}`;
 
   API.apiRules.fetchLogs.call({
     success: json => {
