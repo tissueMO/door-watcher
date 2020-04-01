@@ -155,8 +155,21 @@ def log(event, context):
                 ],
                 "datasets": [
                   {
-                    "label": "4F 男性用トイレ",  // トイレグループ単位
-                    "data": [0, 1, 1, ...]     // それぞれの単位時間内におけるオープン、クローズのイベント数合計値
+                    "label": "4F 男性用トイレ - N時間あたりの使用頻度",  // トイレグループ単位
+                    "data": [0, 1, 1, ...]    // それぞれの単位時間内におけるドアクローズのイベント数合計値
+                  }
+                ]
+              }
+            },
+            ...,
+            {
+              "type": "bar",
+              "data": {
+                "labels": [ 省略 ],
+                "datasets": [
+                  {
+                    "label": "4F 男性用トイレ - N時間あたりの占有率",  // トイレグループ単位
+                    "data": [0.25, 1.0, 0, ...]    // それぞれの単位時間内におけるオープン、クローズのイベント数合計値
                   }
                 ]
               }
@@ -246,7 +259,7 @@ def log(event, context):
                 "message": message
             }
 
-        ##### 使用頻度 #####
+        ##### 使用頻度 (抽出開始時刻よりも前から継続して入室中だったデータはカウント対象に含まれないので注意) #####
         # 横軸ラベルを生成
         graphs = []
         labels = []
@@ -314,8 +327,9 @@ def log(event, context):
 
                 for n, target_status in enumerate(target_statuses_all[start_index:]):
                     if one_of_begin_and_end_pairs["begin"] <= target_status.created_time and \
-                            target_status.created_time < one_of_begin_and_end_pairs["end"]:
-                        # 対象区間内のレコードであればカウント
+                            target_status.created_time < one_of_begin_and_end_pairs["end"] and \
+                            target_status.is_closed:
+                        # 対象区間内の入室記録であればカウント
                         sampling_count += 1
                     elif one_of_begin_and_end_pairs["end"] <= target_status.created_time:
                         # 対象区間から出た時点で抜ける
