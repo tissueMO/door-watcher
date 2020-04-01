@@ -8,13 +8,8 @@ const OptimizeCSSAssetsPlugin = require("optimize-css-assets-webpack-plugin");
 const TerserJSPlugin = require("terser-webpack-plugin");
 const CopyWebpackPlugin = require("copy-webpack-plugin");
 const globule = require("globule");
-const args = require("args-parser")(process.argv);
 const { CleanWebpackPlugin } = require('clean-webpack-plugin');
 
-// 環境名
-const IS_DEVELOP = !("production" in args);
-// ソースマップを生成するかどうか
-const USE_SOURCE_MAP = IS_DEVELOP;
 // ビルド先パス
 const DEST_PATH = path.join(__dirname, "./public");
 
@@ -134,8 +129,5 @@ for (const [targetName, srcName] of Object.entries(getEntriesList({ejs: "html"})
     template : srcName,
   }));
 }
-
-// console.log(app);
-// console.log(app.plugins);
 
 module.exports = [app];
