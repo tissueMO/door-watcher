@@ -349,7 +349,7 @@ def log(event, context):
         # 系列ごとにグラフデータを分けて作成
         for i, series_toilet in enumerate(grouped_toilets):
             graph = {
-              "type": "bar",
+              "type": "line",
               "data": {
                 "labels": labels,
                 "datasets": [{
