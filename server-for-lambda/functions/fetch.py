@@ -221,6 +221,9 @@ def log(event, context):
         step_hours = 3
         logger.warning(f"[log] API Parameter Check. :step_hours={raw_step_hours}->{step_hours}")
 
+    # 日付計算の都合上、終端日時は 24:00 とする
+    end_datetime = end_datetime + datetime.timedelta(hours=24)
+
     with Common.create_session() as session:
         # トイレマスターを取得
         toilets = session \
@@ -268,7 +271,7 @@ def log(event, context):
         current_end_hours = current_begin_hours + step_hours
         current_datetime = begin_datetime
 
-        while current_datetime <= end_datetime:
+        while current_datetime < end_datetime:
             current_begin_datetime = current_datetime + datetime.timedelta(hours=current_begin_hours)
             current_end_datetime = current_datetime + datetime.timedelta(hours=current_end_hours)
             target_begin_and_end_pairs.append({
