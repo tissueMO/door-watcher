@@ -157,7 +157,7 @@ def log():
         current_end_hours = current_begin_hours + step_hours
         current_datetime = begin_datetime
 
-        while current_datetime < end_datetime:
+        while current_datetime <= end_datetime:
             current_begin_datetime = current_datetime + datetime.timedelta(hours=current_begin_hours)
             current_end_datetime = current_datetime + datetime.timedelta(hours=current_end_hours)
             target_begin_and_end_pairs.append({
