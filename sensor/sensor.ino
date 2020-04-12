@@ -7,10 +7,6 @@ extern "C" {
 
 // Wi-Fi 接続、通信設定
 #include "settings.h"
-// #define SSID {SSID}
-// #define PASSWORD {PASSWORD}
-// #define HOSTNAME {HOSTNAME}
-// #define PORT {PORT}
 const char* ssid = SSID;
 const char* password = PASSWORD;
 const char* host = HOSTNAME;
@@ -23,12 +19,7 @@ const int port = PORT;
 #endif
 
 // 機器固有設定
-// const char* TOILET_ID = "11";
-const char* TOILET_ID = "21";
-// const char* TOILET_ID = "31";
-// const char* TOILET_ID = "32";
-// const char* TOILET_ID = "41";
-// const char* TOILET_ID = "42";
+const char* TOILET_ID = "11";
 
 // LED I/O ピン番号
 const int LED = 4;
@@ -95,7 +86,7 @@ void loop() {
 
   // PUT リクエスト実行
   String body = String("{ \"toilet_id\": ") + TOILET_ID + " }";
-  String request = 
+  String request =
     String("PUT ") + url + " HTTP/1.1\r\n" +
     "Host: " + host + "\r\n" +
     "Connection: close\r\n" +
@@ -118,11 +109,13 @@ void loop() {
 
   // リードスイッチの状態に応じて異なる待機時間で待機
   if(door_state == CLOSE) {
+    //ドアが閉じている間はドアが開くまで待機
     Serial.println("DEEP SLEEP...");
-    ESP.deepSleep(0, WAKE_RF_DEFAULT);    //ドアが閉じている間はドアが開くまで待機
+    ESP.deepSleep(0, WAKE_RF_DEFAULT);
   } else {
+    //ドアが開いている間はドアが閉じるまで待機
     Serial.println("DEEP SLEEP...");
-    ESP.deepSleep(0, WAKE_RF_DEFAULT);    //ドアが開いている間はドアが閉じるまで待機
+    ESP.deepSleep(0, WAKE_RF_DEFAULT);
   }
   delay(1000);
 }
