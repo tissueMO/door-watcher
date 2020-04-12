@@ -26,12 +26,7 @@
 単体で Wi-Fi モジュールが付いている ESPr Door Sensor を使用します。  
 Arduino IDE を用いてソースコードをコンパイルして書き込みます。  
 
-コンパイルに必要な `/sensor/settings.h` は環境依存するためバージョン管理に含めていませんが、環境に応じて以下のマクロを定義したファイルとして配置しておく必要があります。  
-
-- `#define SSID {SSID}`
-- `#define PASSWORD {PASSWORD}`
-- `#define HOSTNAME {HOSTNAME}`
-- `#define PORT {PORT}`
+環境依存する設定をまとめたヘッダーファイル `/sensor/settings.h` は `/sensor/settings.example.h` をもとに作成する必要があります。  
 
 リードスイッチに磁石が接近した瞬間、および磁石が離れた瞬間に所定の Wi-Fi アクセスポイントに接続を行い、インターネットを介して (宛先アドレスによってはLAN内で完結することも可能です) サーバーにPOSTします。  
 
@@ -136,11 +131,7 @@ Webサーバーは特に想定していませんが、コンテンツのビル�
     - バイナリーの書き込みにあたっては ESP8266 固有の設定が必要となります。詳しくはスイッチサイエンス社 Wiki (公式) を参照。
         - http://trac.switch-science.com/wiki/ESP-DOOR
 - Arduino IDE から `/sensor/ESPrDoorSensor.ino` を開きます。
-- `/sensor/settings.h` を作成し、環境依存する値のマクロを定義します。
-    - `#define SSID {SSID}`
-    - `#define PASSWORD {PASSWORD}`
-    - `#define HOSTNAME {HOSTNAME}`
-    - `#define PORT {PORT}`
+- `/sensor/settings.example.h` をもとに適宜設定値を含めた `/sensor/settings.h` を作成し、環境依存する値のマクロを定義します。
 - コンパイル & ESPr Door Sensor への書き込みを行います。
 
 
@@ -180,12 +171,12 @@ Webサーバーは特に想定していませんが、コンテンツのビル�
 
 - コマンドライン上で `/frontend` に移動した状態で以下のコマンドで Node.js で使用する依存パッケージをインストールします。
     - `$ yarn`
-- `/frontend/src/js/settings.js` を作成し、環境依存する値 (APIサーバーのURL、末尾に / を含まないもの) を定義します。
-    - `export const apiServerURLBase = 'http://HOSTNAME';`
+- `/frontend/src/js/settings-toilet.example.js` をもとに環境依存する値 (APIサーバーのURL、末尾に / を含まないもの) を設定した `/frontend/src/js/settings-toilet.js` を作成します。
+- `/frontend/src/js/settings-room.example.js` をもとに環境依存する値 (APIサーバーのURL、末尾に / を含まないもの) を設定した `/frontend/src/js/settings-room.js` を作成します。
 - 以下のコマンドで公開ファイル群をビルドします。
     - `$ yarn run dev`
         - 本番モードでビルドするには `$ yarn run build` とします。
-        - 本番モードでの出力には、mapファイルが含まれず、CSSおよびJavaScriptファイルがMinifyされたものになります。
+        - 本番モードでの出力には、mapファイルが含まれず、CSSおよびJavaScriptファイルが Minify されたものになります。
 - `/frontend/public/` 以下に作られたファイルを、任意のWebサーバーの公開ディレクトリーに配置します。
     - アーキテクチャー全体図では Web Server に相当します。
 
