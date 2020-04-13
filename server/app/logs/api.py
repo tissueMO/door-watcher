@@ -298,7 +298,7 @@ def log():
                         if target_status.is_closed:
                             # 対象区間内の入室記録にヒットしたら占有時間の計算を開始する
                             temp_last_start_times[target_status.toilet_id] = target_status.created_time
-                        else:
+                        elif temp_last_start_times[target_status.toilet_id] is not None:
                             # 対象区間内の退室記録にヒットしたら占有時間の計算を完了する
                             time_delta = target_status.created_time - temp_last_start_times[target_status.toilet_id]
                             occupied_times[target_status.toilet_id] += time_delta.total_seconds()
