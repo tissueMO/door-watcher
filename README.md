@@ -239,6 +239,8 @@ Webサーバーは特に想定していませんが、コンテンツのビル�
 - [ESPr Door Seonsor の使い方 - スイッチサイエンス](http://trac.switch-science.com/wiki/ESP-DOOR)
 - [craicerjack/apache-flask](https://hub.docker.com/r/craicerjack/apache-flask/)
 - [ndegardin/apache-wsgi](https://hub.docker.com/r/ndegardin/apache-wsgi)
+- [ICOOON MONO](https://icooon-mono.com/)
+    - このリポジトリーで使用している favicon の著作権は上記サイトの TopeconHeroes 様に帰属します。
 
 
 ## License
