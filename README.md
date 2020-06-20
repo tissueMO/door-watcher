@@ -177,6 +177,8 @@ Webサーバーは特に想定していませんが、コンテンツのビル�
     - `$ yarn run dev`
         - 本番モードでビルドするには `$ yarn run build` とします。
         - 本番モードでの出力には、mapファイルが含まれず、CSSおよびJavaScriptファイルが Minify されたものになります。
+- ローカルサーバーでデバッグするには以下のコマンドを実行します。
+    - `$ yarn run start`
 - `/frontend/public/` 以下に作られたファイルを、任意のWebサーバーの公開ディレクトリーに配置します。
     - アーキテクチャー全体図では Web Server に相当します。
 
@@ -234,7 +236,7 @@ Webサーバーは特に想定していませんが、コンテンツのビル�
     - 非最新のブラウザーや Internet Explorer 等では正しく動作しない可能性があります。
 
 
-## Reference
+## References
 
 - [ESPr Door Seonsor の使い方 - スイッチサイエンス](http://trac.switch-science.com/wiki/ESP-DOOR)
 - [craicerjack/apache-flask](https://hub.docker.com/r/craicerjack/apache-flask/)

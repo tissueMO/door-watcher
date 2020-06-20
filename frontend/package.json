@@ -47,8 +47,8 @@
     "not IE 11"
   ],
   "scripts": {
-    "start": "webpack-dev-server --inline --hot --config ./webpack.dev.js",
-    "build": "webpack --config ./webpack.prod.js",
-    "dev": "webpack --config ./webpack.dev.js"
+    "dev": "webpack --config ./webpack.dev.js --progress --profile --colors",
+    "start": "webpack-dev-server --inline --hot --config ./webpack.watch.js",
+    "build": "webpack --config ./webpack.prod.js --progress --profile --colors"
   }
 }

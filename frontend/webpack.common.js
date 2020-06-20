@@ -1,14 +1,10 @@
 // 各種プラグインのロード
 const path = require("path");
 const MiniCssExtractPlugin = require("mini-css-extract-plugin");
-const UglifyJsPlugin = require("uglifyjs-webpack-plugin");
 const AutoPrefixer = require("autoprefixer");
 const HtmlWebpackPlugin = require("html-webpack-plugin");
-const OptimizeCSSAssetsPlugin = require("optimize-css-assets-webpack-plugin");
-const TerserJSPlugin = require("terser-webpack-plugin");
 const CopyWebpackPlugin = require("copy-webpack-plugin");
 const globule = require("globule");
-const { CleanWebpackPlugin } = require('clean-webpack-plugin');
 
 // ビルド先パス
 const DEST_PATH = path.join(__dirname, "./public");
@@ -20,7 +16,7 @@ const getEntriesList = (targetTypes) => {
     const filesMatched = globule.find([`**/*.${srcType}`, `!**/_*.${srcType}`], {cwd : `${__dirname}/src`});
 
     for (const srcName of filesMatched) {
-      const targetName = srcName.replace(new RegExp(`.${srcType}$`, 'i'), `.${targetType}`);
+      const targetName = srcName.replace(new RegExp(`.${srcType}$`, "i"), `.${targetType}`);
       entriesList[targetName] = `${__dirname}/src/${srcName}`;
     }
   }
@@ -46,14 +42,8 @@ const app = {
       {
         test: /\.ejs$/,
         use: [
-          {
-            loader: "html-loader",
-          },
-          {
-            loader: "ejs-html-loader",
-            options: {
-            },
-          },
+          { loader: "html-loader" },
+          { loader: "ejs-html-loader" },
         ],
       },
       {
@@ -63,30 +53,27 @@ const app = {
       },
       {
         test: /\.scss$/,
-        use: [{
-          loader: MiniCssExtractPlugin.loader,
-        }, {
-          loader: "css-loader",
-        }, {
-          loader: "postcss-loader",
-          options: {
-            plugins: [
-              AutoPrefixer(),
-            ],
+        use: [
+          { loader: MiniCssExtractPlugin.loader },
+          { loader: "css-loader" },
+          {
+            loader: "postcss-loader",
+            options: {
+              plugins: [
+                AutoPrefixer(),
+              ],
+            },
           },
-        }, {
-          loader: "sass-loader",
-        }],
+          { loader: "sass-loader" },
+        ],
       },
       {
         test: /\.js$/,
         exclude: /node_modules/,
-        enforce: 'pre',
+        enforce: "pre",
         use: [
-          {
-            loader: 'eslint-loader',
-          },
-        ]
+          { loader: "eslint-loader" },
+        ],
       },
     ],
   },
@@ -94,7 +81,6 @@ const app = {
     extensions: [".js"],
   },
   plugins: [
-    new CleanWebpackPlugin(),
     new MiniCssExtractPlugin({
       filename: "css/style.min.css",
     }),
@@ -110,13 +96,6 @@ const app = {
       },
     ),
   ],
-  optimization: {
-    minimizer: [
-      new TerserJSPlugin({}),
-      new OptimizeCSSAssetsPlugin({}),
-      new UglifyJsPlugin(),
-    ]
-  },
   performance: {
     hints: false,
   },
@@ -130,4 +109,7 @@ for (const [targetName, srcName] of Object.entries(getEntriesList({ejs: "html"})
   }));
 }
 
-module.exports = [app];
+module.exports = {
+  DEST_PATH: DEST_PATH,
+  app: app,
+};
